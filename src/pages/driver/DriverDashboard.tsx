@@ -1,0 +1,139 @@
+import { useState, useEffect } from 'react';
+import { MobileLayout } from '@/components/layout/MobileLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Car, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+
+interface Vehicle {
+  id: string;
+  registration: string;
+  make: string | null;
+  model: string | null;
+}
+
+interface DriverEntry {
+  id: string;
+  entry_date: string;
+  submitted_at: string;
+}
+
+export default function DriverDashboard() {
+  const { profile, user } = useAuth();
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [todayEntry, setTodayEntry] = useState<DriverEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!profile || !user) return;
+
+      // Fetch assigned vehicle
+      const { data: vehicleData } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('assigned_driver_id', profile.id)
+        .maybeSingle();
+
+      setVehicle(vehicleData);
+
+      // Check for today's entry
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: entryData } = await supabase
+        .from('driver_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('entry_date', today)
+        .maybeSingle();
+
+      setTodayEntry(entryData);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [profile, user]);
+
+  const today = format(new Date(), 'EEEE, d MMMM yyyy');
+
+  return (
+    <MobileLayout title="Driver Dashboard">
+      <div className="space-y-6 animate-fade-in">
+        {/* Welcome */}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            Hello, {profile?.full_name?.split(' ')[0]}
+          </h2>
+          <p className="text-muted-foreground">{today}</p>
+        </div>
+
+        {/* Today's Status */}
+        <div className="touch-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Today's Status</h3>
+          </div>
+          
+          {loading ? (
+            <div className="py-4 text-center text-muted-foreground">Loading...</div>
+          ) : todayEntry ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+              <CheckCircle2 className="w-6 h-6 text-success" />
+              <div>
+                <p className="font-medium text-success">Form Submitted</p>
+                <p className="text-sm text-muted-foreground">
+                  Submitted at {format(new Date(todayEntry.submitted_at), 'HH:mm')}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                <Clock className="w-6 h-6 text-warning" />
+                <div>
+                  <p className="font-medium text-warning">Pending</p>
+                  <p className="text-sm text-muted-foreground">
+                    Complete your daily form
+                  </p>
+                </div>
+              </div>
+              <Link to="/driver/form">
+                <Button className="w-full h-12 shadow-primary">
+                  Complete Daily Form
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Assigned Vehicle */}
+        <div className="touch-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Car className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Assigned Vehicle</h3>
+          </div>
+          
+          {loading ? (
+            <div className="py-4 text-center text-muted-foreground">Loading...</div>
+          ) : vehicle ? (
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <p className="text-2xl font-bold text-primary tracking-wider">
+                {vehicle.registration}
+              </p>
+              {(vehicle.make || vehicle.model) && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {[vehicle.make, vehicle.model].filter(Boolean).join(' ')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground py-4 text-center">
+              No vehicle assigned. Contact your manager.
+            </p>
+          )}
+        </div>
+      </div>
+    </MobileLayout>
+  );
+}
