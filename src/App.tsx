@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverForm from "./pages/driver/DriverForm";
 import EscortDashboard from "./pages/escort/EscortDashboard";
@@ -29,6 +30,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/auth" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             
             {/* Driver Routes */}
             <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver']}><DriverDashboard /></ProtectedRoute>} />
