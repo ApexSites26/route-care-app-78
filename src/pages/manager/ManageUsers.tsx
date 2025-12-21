@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Loader2, User } from 'lucide-react';
+import { Plus, Loader2, User, Pencil, Trash2 } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -22,6 +23,8 @@ export default function ManageUsers() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<'driver' | 'escort'>('driver');
@@ -35,6 +38,29 @@ export default function ManageUsers() {
 
   useEffect(() => { fetchProfiles(); }, []);
 
+  const resetForm = () => {
+    setNewName('');
+    setNewEmail('');
+    setNewRole('driver');
+    setEditingProfile(null);
+  };
+
+  const handleOpenDialog = (profile?: Profile) => {
+    if (profile) {
+      setEditingProfile(profile);
+      setNewName(profile.full_name);
+      setNewRole(profile.role === 'manager' ? 'driver' : profile.role);
+    } else {
+      resetForm();
+    }
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    resetForm();
+  };
+
   const handleAddUser = async () => {
     if (!newName.trim() || !newEmail.trim()) {
       toast({ title: 'Please fill all fields', variant: 'destructive' });
@@ -42,10 +68,9 @@ export default function ManageUsers() {
     }
     setSaving(true);
 
-    // Create auth user first
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: newEmail,
-      password: 'TempPass123!', // Temporary password - user should reset
+      password: 'TempPass123!',
       options: { emailRedirectTo: window.location.origin }
     });
 
@@ -55,7 +80,6 @@ export default function ManageUsers() {
       return;
     }
 
-    // Create profile
     const { error: profileError } = await supabase.from('profiles').insert({
       user_id: authData.user.id,
       full_name: newName.trim(),
@@ -66,32 +90,69 @@ export default function ManageUsers() {
       toast({ title: 'Failed to create profile', description: profileError.message, variant: 'destructive' });
     } else {
       toast({ title: 'User created', description: 'They can log in with temporary password: TempPass123!' });
-      setDialogOpen(false);
-      setNewName('');
-      setNewEmail('');
+      handleCloseDialog();
       fetchProfiles();
     }
     setSaving(false);
   };
 
+  const handleUpdateUser = async () => {
+    if (!editingProfile || !newName.trim()) {
+      toast({ title: 'Please fill all fields', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+
+    const { error } = await supabase.from('profiles')
+      .update({ full_name: newName.trim(), role: newRole })
+      .eq('id', editingProfile.id);
+
+    if (error) {
+      toast({ title: 'Failed to update user', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'User updated' });
+      handleCloseDialog();
+      fetchProfiles();
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteProfile) return;
+    
+    const { error } = await supabase.from('profiles').delete().eq('id', deleteProfile.id);
+    
+    if (error) {
+      toast({ title: 'Failed to delete user', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'User deleted' });
+      fetchProfiles();
+    }
+    setDeleteProfile(null);
+  };
+
   return (
     <MobileLayout title="Manage Users">
       <div className="space-y-4 animate-fade-in">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => open ? handleOpenDialog() : handleCloseDialog()}>
           <DialogTrigger asChild>
             <Button className="w-full h-12"><Plus className="w-5 h-5 mr-2" />Add User</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add New User</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{editingProfile ? 'Edit User' : 'Add New User'}</DialogTitle>
+            </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="John Smith" />
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="john@example.com" />
-              </div>
+              {!editingProfile && (
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="john@example.com" />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={newRole} onValueChange={(v) => setNewRole(v as 'driver' | 'escort')}>
@@ -102,8 +163,8 @@ export default function ManageUsers() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddUser} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create User'}
+              <Button onClick={editingProfile ? handleUpdateUser : handleAddUser} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingProfile ? 'Update User' : 'Create User')}
               </Button>
             </div>
           </DialogContent>
@@ -124,10 +185,33 @@ export default function ManageUsers() {
                   <p className="font-medium text-foreground">{p.full_name}</p>
                   <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
                 </div>
+                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             ))}
           </div>
         )}
+
+        <AlertDialog open={!!deleteProfile} onOpenChange={(open) => !open && setDeleteProfile(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete User</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {deleteProfile?.full_name}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MobileLayout>
   );
