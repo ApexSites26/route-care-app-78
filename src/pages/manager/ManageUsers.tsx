@@ -68,10 +68,14 @@ export default function ManageUsers() {
     }
     setSaving(true);
 
+    // Create auth user with metadata - trigger will create profile with email as name
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: newEmail,
       password: 'TempPass123!',
-      options: { emailRedirectTo: window.location.origin }
+      options: { 
+        emailRedirectTo: window.location.origin,
+        data: { full_name: newName.trim() }
+      }
     });
 
     if (authError || !authData.user) {
@@ -80,16 +84,20 @@ export default function ManageUsers() {
       return;
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert({
-      user_id: authData.user.id,
-      full_name: newName.trim(),
-      role: newRole,
-    });
+    // Wait briefly for trigger to create profile, then update with correct name/role
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const { error: profileError } = await supabase.from('profiles')
+      .update({ full_name: newName.trim(), role: newRole })
+      .eq('user_id', authData.user.id);
 
     if (profileError) {
-      toast({ title: 'Failed to create profile', description: profileError.message, variant: 'destructive' });
+      toast({ title: 'Failed to update profile', description: profileError.message, variant: 'destructive' });
     } else {
-      toast({ title: 'User created', description: 'They can log in with temporary password: TempPass123!' });
+      toast({ 
+        title: 'User created', 
+        description: `They should check their email for a confirmation link, then log in with temporary password: TempPass123!` 
+      });
       handleCloseDialog();
       fetchProfiles();
     }
