@@ -131,10 +131,10 @@ export default function ManageVehicles() {
               </div>
               <div className="space-y-2">
                 <Label>Assign Driver</Label>
-                <Select value={driverId} onValueChange={setDriverId}>
+                <Select value={driverId || "unassigned"} onValueChange={(val) => setDriverId(val === "unassigned" ? "" : val)}>
                   <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
