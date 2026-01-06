@@ -6,6 +6,8 @@ import { Car, CheckCircle2, Clock, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { WeeklyRota } from '@/components/WeeklyRota';
+import { GarageAlert } from '@/components/GarageAlert';
 
 interface Vehicle {
   id: string;
@@ -18,6 +20,10 @@ interface DriverEntry {
   id: string;
   entry_date: string;
   submitted_at: string;
+  morning_start_time: string | null;
+  morning_finish_time: string | null;
+  afternoon_start_time: string | null;
+  afternoon_finish_time: string | null;
 }
 
 export default function DriverDashboard() {
@@ -30,7 +36,6 @@ export default function DriverDashboard() {
     async function fetchData() {
       if (!profile || !user) return;
 
-      // Fetch assigned vehicle
       const { data: vehicleData } = await supabase
         .from('vehicles')
         .select('*')
@@ -39,7 +44,6 @@ export default function DriverDashboard() {
 
       setVehicle(vehicleData);
 
-      // Check for today's entry
       const today = format(new Date(), 'yyyy-MM-dd');
       const { data: entryData } = await supabase
         .from('driver_entries')
@@ -56,17 +60,23 @@ export default function DriverDashboard() {
   }, [profile, user]);
 
   const today = format(new Date(), 'EEEE, d MMMM yyyy');
+  
+  const morningComplete = !!(todayEntry?.morning_start_time && todayEntry?.morning_finish_time);
+  const afternoonComplete = !!(todayEntry?.afternoon_start_time && todayEntry?.afternoon_finish_time);
+  const fullyComplete = morningComplete && afternoonComplete;
 
   return (
     <MobileLayout title="Driver Dashboard">
       <div className="space-y-6 animate-fade-in">
-        {/* Welcome */}
         <div>
           <h2 className="text-2xl font-bold text-foreground">
             Hello, {profile?.full_name?.split(' ')[0]}
           </h2>
           <p className="text-muted-foreground">{today}</p>
         </div>
+
+        {/* Garage Alert */}
+        <GarageAlert />
 
         {/* Today's Status */}
         <div className="touch-card">
@@ -77,15 +87,26 @@ export default function DriverDashboard() {
           
           {loading ? (
             <div className="py-4 text-center text-muted-foreground">Loading...</div>
-          ) : todayEntry ? (
+          ) : fullyComplete ? (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
               <CheckCircle2 className="w-6 h-6 text-success" />
               <div>
-                <p className="font-medium text-success">Form Submitted</p>
-                <p className="text-sm text-muted-foreground">
-                  Submitted at {format(new Date(todayEntry.submitted_at), 'HH:mm')}
-                </p>
+                <p className="font-medium text-success">Fully Submitted</p>
+                <p className="text-sm text-muted-foreground">Morning & afternoon complete</p>
               </div>
+            </div>
+          ) : morningComplete ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <Clock className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="font-medium text-primary">Morning Complete</p>
+                  <p className="text-sm text-muted-foreground">Afternoon run pending</p>
+                </div>
+              </div>
+              <Link to="/driver/form">
+                <Button className="w-full h-12 shadow-primary">Submit Afternoon Run</Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-3">
@@ -93,19 +114,18 @@ export default function DriverDashboard() {
                 <Clock className="w-6 h-6 text-warning" />
                 <div>
                   <p className="font-medium text-warning">Pending</p>
-                  <p className="text-sm text-muted-foreground">
-                    Complete your daily form
-                  </p>
+                  <p className="text-sm text-muted-foreground">Complete your daily form</p>
                 </div>
               </div>
               <Link to="/driver/form">
-                <Button className="w-full h-12 shadow-primary">
-                  Complete Daily Form
-                </Button>
+                <Button className="w-full h-12 shadow-primary">Complete Daily Form</Button>
               </Link>
             </div>
           )}
         </div>
+
+        {/* Weekly Rota */}
+        <WeeklyRota role="driver" />
 
         {/* Assigned Vehicle */}
         <div className="touch-card">
@@ -118,9 +138,7 @@ export default function DriverDashboard() {
             <div className="py-4 text-center text-muted-foreground">Loading...</div>
           ) : vehicle ? (
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-              <p className="text-2xl font-bold text-primary tracking-wider">
-                {vehicle.registration}
-              </p>
+              <p className="text-2xl font-bold text-primary tracking-wider">{vehicle.registration}</p>
               {(vehicle.make || vehicle.model) && (
                 <p className="text-sm text-muted-foreground mt-1">
                   {[vehicle.make, vehicle.model].filter(Boolean).join(' ')}
@@ -128,9 +146,7 @@ export default function DriverDashboard() {
               )}
             </div>
           ) : (
-            <p className="text-muted-foreground py-4 text-center">
-              No vehicle assigned. Contact your manager.
-            </p>
+            <p className="text-muted-foreground py-4 text-center">No vehicle assigned. Contact your manager.</p>
           )}
         </div>
       </div>
