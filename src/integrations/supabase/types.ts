@@ -16,58 +16,100 @@ export type Database = {
     Tables: {
       driver_entries: {
         Row: {
+          additional_comments: string | null
           afternoon_finish_time: string | null
           afternoon_start_time: string | null
-          check_damage: boolean | null
-          check_fuel: boolean | null
+          check_body_damage: boolean | null
+          check_brakes: boolean | null
+          check_cleanliness: boolean | null
+          check_defects_reported: boolean | null
+          check_first_aid_kit: boolean | null
+          check_fluids: boolean | null
+          check_hackney_plate: boolean | null
+          check_horn: boolean | null
+          check_indicators: boolean | null
+          check_leaks: boolean | null
           check_lights: boolean | null
-          check_oil: boolean | null
-          check_tyres: boolean | null
+          check_mirrors: boolean | null
+          check_no_excess_smoke: boolean | null
+          check_tyres_wheels: boolean | null
+          check_windows: boolean | null
+          check_wipers_washers: boolean | null
           created_at: string
+          end_mileage: number | null
           entry_date: string
           id: string
           issues_text: string | null
           morning_finish_time: string | null
           morning_start_time: string | null
           no_issues: boolean
+          start_mileage: number | null
           submitted_at: string
           user_id: string
           vehicle_id: string | null
         }
         Insert: {
+          additional_comments?: string | null
           afternoon_finish_time?: string | null
           afternoon_start_time?: string | null
-          check_damage?: boolean | null
-          check_fuel?: boolean | null
+          check_body_damage?: boolean | null
+          check_brakes?: boolean | null
+          check_cleanliness?: boolean | null
+          check_defects_reported?: boolean | null
+          check_first_aid_kit?: boolean | null
+          check_fluids?: boolean | null
+          check_hackney_plate?: boolean | null
+          check_horn?: boolean | null
+          check_indicators?: boolean | null
+          check_leaks?: boolean | null
           check_lights?: boolean | null
-          check_oil?: boolean | null
-          check_tyres?: boolean | null
+          check_mirrors?: boolean | null
+          check_no_excess_smoke?: boolean | null
+          check_tyres_wheels?: boolean | null
+          check_windows?: boolean | null
+          check_wipers_washers?: boolean | null
           created_at?: string
+          end_mileage?: number | null
           entry_date?: string
           id?: string
           issues_text?: string | null
           morning_finish_time?: string | null
           morning_start_time?: string | null
           no_issues?: boolean
+          start_mileage?: number | null
           submitted_at?: string
           user_id: string
           vehicle_id?: string | null
         }
         Update: {
+          additional_comments?: string | null
           afternoon_finish_time?: string | null
           afternoon_start_time?: string | null
-          check_damage?: boolean | null
-          check_fuel?: boolean | null
+          check_body_damage?: boolean | null
+          check_brakes?: boolean | null
+          check_cleanliness?: boolean | null
+          check_defects_reported?: boolean | null
+          check_first_aid_kit?: boolean | null
+          check_fluids?: boolean | null
+          check_hackney_plate?: boolean | null
+          check_horn?: boolean | null
+          check_indicators?: boolean | null
+          check_leaks?: boolean | null
           check_lights?: boolean | null
-          check_oil?: boolean | null
-          check_tyres?: boolean | null
+          check_mirrors?: boolean | null
+          check_no_excess_smoke?: boolean | null
+          check_tyres_wheels?: boolean | null
+          check_windows?: boolean | null
+          check_wipers_washers?: boolean | null
           created_at?: string
+          end_mileage?: number | null
           entry_date?: string
           id?: string
           issues_text?: string | null
           morning_finish_time?: string | null
           morning_start_time?: string | null
           no_issues?: boolean
+          start_mileage?: number | null
           submitted_at?: string
           user_id?: string
           vehicle_id?: string | null
