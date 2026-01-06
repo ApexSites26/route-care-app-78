@@ -15,6 +15,8 @@ import EscortForm from "./pages/escort/EscortForm";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import ManageUsers from "./pages/manager/ManageUsers";
 import ManageVehicles from "./pages/manager/ManageVehicles";
+import ManageSchoolRuns from "./pages/manager/ManageSchoolRuns";
+import ManageGarage from "./pages/manager/ManageGarage";
 import ViewEntries from "./pages/manager/ViewEntries";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +46,8 @@ const App = () => (
             <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerDashboard /></ProtectedRoute>} />
             <Route path="/manager/users" element={<ProtectedRoute allowedRoles={['manager']}><ManageUsers /></ProtectedRoute>} />
             <Route path="/manager/vehicles" element={<ProtectedRoute allowedRoles={['manager']}><ManageVehicles /></ProtectedRoute>} />
+            <Route path="/manager/runs" element={<ProtectedRoute allowedRoles={['manager']}><ManageSchoolRuns /></ProtectedRoute>} />
+            <Route path="/manager/garage" element={<ProtectedRoute allowedRoles={['manager']}><ManageGarage /></ProtectedRoute>} />
             <Route path="/manager/entries" element={<ProtectedRoute allowedRoles={['manager']}><ViewEntries /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />

@@ -1,7 +1,7 @@
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
-import { Users, Car, ClipboardList, Download } from 'lucide-react';
+import { Users, Car, ClipboardList, Route, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function ManagerDashboard() {
@@ -11,6 +11,8 @@ export default function ManagerDashboard() {
   const menuItems = [
     { to: '/manager/users', icon: Users, label: 'Manage Users', description: 'Add drivers and escorts' },
     { to: '/manager/vehicles', icon: Car, label: 'Manage Vehicles', description: 'Vehicle registrations' },
+    { to: '/manager/runs', icon: Route, label: 'School Runs', description: 'Runs and allocations' },
+    { to: '/manager/garage', icon: Wrench, label: 'Garage Work', description: 'Maintenance alerts' },
     { to: '/manager/entries', icon: ClipboardList, label: 'View Entries', description: 'Timesheets and checklists' },
   ];
 

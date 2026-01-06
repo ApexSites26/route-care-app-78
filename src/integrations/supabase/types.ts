@@ -196,6 +196,94 @@ export type Database = {
         }
         Relationships: []
       }
+      run_allocations: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          driver_id: string | null
+          escort_id: string | null
+          id: string
+          is_active: boolean
+          run_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          driver_id?: string | null
+          escort_id?: string | null
+          id?: string
+          is_active?: boolean
+          run_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          driver_id?: string | null
+          escort_id?: string | null
+          id?: string
+          is_active?: boolean
+          run_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "run_allocations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "run_allocations_escort_id_fkey"
+            columns: ["escort_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "run_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "school_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_runs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          pickup_time_home: string | null
+          pickup_time_school: string | null
+          run_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          pickup_time_home?: string | null
+          pickup_time_school?: string | null
+          run_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          pickup_time_home?: string | null
+          pickup_time_school?: string | null
+          run_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -213,6 +301,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicle_maintenance: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean
+          is_urgent: boolean
+          maintenance_type: string
+          vehicle_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          is_urgent?: boolean
+          maintenance_type: string
+          vehicle_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          is_urgent?: boolean
+          maintenance_type?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicles: {
         Row: {

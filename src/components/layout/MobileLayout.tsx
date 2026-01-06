@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, FileText, Users, Car, ClipboardList, LogOut } from 'lucide-react';
+import { Home, FileText, Users, Car, ClipboardList, LogOut, Route, Wrench } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -30,8 +30,8 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
       case 'manager':
         return [
           { to: '/manager', icon: Home, label: 'Home' },
-          { to: '/manager/users', icon: Users, label: 'Users' },
-          { to: '/manager/vehicles', icon: Car, label: 'Vehicles' },
+          { to: '/manager/runs', icon: Route, label: 'Runs' },
+          { to: '/manager/garage', icon: Wrench, label: 'Garage' },
           { to: '/manager/entries', icon: ClipboardList, label: 'Entries' },
         ];
       default:
