@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Route, Clock, Users, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Clock, Users, Pencil, Trash2, Sun, Moon } from 'lucide-react';
 
 interface SchoolRun {
   id: string;
@@ -15,6 +15,7 @@ interface SchoolRun {
   description: string | null;
   pickup_time_home: string | null;
   pickup_time_school: string | null;
+  duration_minutes: number | null;
   is_active: boolean;
 }
 
@@ -30,11 +31,11 @@ interface Allocation {
   driver_id: string | null;
   escort_id: string | null;
   day_of_week: number;
-  driver?: { full_name: string } | null;
-  escort?: { full_name: string } | null;
+  shift_type: string;
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WORK_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
 
 export default function ManageSchoolRuns() {
   const { toast } = useToast();
@@ -47,6 +48,7 @@ export default function ManageSchoolRuns() {
   // Form state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [allocDialogOpen, setAllocDialogOpen] = useState(false);
+  const [hoursDialogOpen, setHoursDialogOpen] = useState(false);
   const [editingRun, setEditingRun] = useState<SchoolRun | null>(null);
   const [selectedRun, setSelectedRun] = useState<SchoolRun | null>(null);
   
@@ -54,6 +56,7 @@ export default function ManageSchoolRuns() {
   const [description, setDescription] = useState('');
   const [pickupHome, setPickupHome] = useState('');
   const [pickupSchool, setPickupSchool] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('60');
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
@@ -79,6 +82,7 @@ export default function ManageSchoolRuns() {
     setDescription('');
     setPickupHome('');
     setPickupSchool('');
+    setDurationMinutes('60');
     setEditingRun(null);
   };
 
@@ -89,6 +93,7 @@ export default function ManageSchoolRuns() {
       setDescription(run.description || '');
       setPickupHome(run.pickup_time_home || '');
       setPickupSchool(run.pickup_time_school || '');
+      setDurationMinutes(String(run.duration_minutes || 60));
     } else {
       resetForm();
     }
@@ -108,6 +113,7 @@ export default function ManageSchoolRuns() {
       description: description.trim() || null,
       pickup_time_home: pickupHome || null,
       pickup_time_school: pickupSchool || null,
+      duration_minutes: parseInt(durationMinutes) || 60,
     };
 
     if (editingRun) {
@@ -148,10 +154,17 @@ export default function ManageSchoolRuns() {
     setAllocDialogOpen(true);
   };
 
-  const handleSaveAllocation = async (dayOfWeek: number, driverId: string | null, escortId: string | null) => {
+  const handleSaveAllocation = async (
+    dayOfWeek: number, 
+    shiftType: 'am' | 'pm',
+    driverId: string | null, 
+    escortId: string | null
+  ) => {
     if (!selectedRun) return;
 
-    const existing = allocations.find(a => a.run_id === selectedRun.id && a.day_of_week === dayOfWeek);
+    const existing = allocations.find(
+      a => a.run_id === selectedRun.id && a.day_of_week === dayOfWeek && a.shift_type === shiftType
+    );
 
     if (existing) {
       const { error } = await supabase.from('run_allocations')
@@ -164,6 +177,7 @@ export default function ManageSchoolRuns() {
       const { error } = await supabase.from('run_allocations').insert({
         run_id: selectedRun.id,
         day_of_week: dayOfWeek,
+        shift_type: shiftType,
         driver_id: driverId || null,
         escort_id: escortId || null,
       });
@@ -175,8 +189,46 @@ export default function ManageSchoolRuns() {
     fetchData();
   };
 
-  const getAllocationForDay = (runId: string, day: number) => {
-    return allocations.find(a => a.run_id === runId && a.day_of_week === day);
+  const getAllocationForDayShift = (runId: string, day: number, shiftType: string) => {
+    return allocations.find(a => a.run_id === runId && a.day_of_week === day && a.shift_type === shiftType);
+  };
+
+  // Calculate hours for a person (driver or escort)
+  const calculateHours = (personId: string, personType: 'driver' | 'escort') => {
+    const personAllocations = allocations.filter(a => 
+      personType === 'driver' ? a.driver_id === personId : a.escort_id === personId
+    );
+
+    const dailyMinutes: Record<number, number> = {};
+    let totalMinutes = 0;
+
+    WORK_DAYS.forEach(day => {
+      dailyMinutes[day] = 0;
+    });
+
+    personAllocations.forEach(alloc => {
+      const run = runs.find(r => r.id === alloc.run_id);
+      if (run && WORK_DAYS.includes(alloc.day_of_week)) {
+        const mins = run.duration_minutes || 60;
+        dailyMinutes[alloc.day_of_week] += mins;
+        totalMinutes += mins;
+      }
+    });
+
+    return { dailyMinutes, totalMinutes };
+  };
+
+  const formatMinutes = (mins: number) => {
+    const hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  };
+
+  const getPersonName = (id: string) => {
+    const driver = drivers.find(d => d.id === id);
+    if (driver) return driver.full_name;
+    const escort = escorts.find(e => e.id === id);
+    return escort?.full_name || 'Unknown';
   };
 
   if (loading) {
@@ -192,41 +244,51 @@ export default function ManageSchoolRuns() {
   return (
     <MobileLayout title="School Runs">
       <div className="space-y-4 animate-fade-in">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()} className="w-full">
-              <Plus className="w-4 h-4 mr-2" /> Add School Run
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingRun ? 'Edit Run' : 'Add School Run'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Run Code</Label>
-                <Input placeholder="e.g. LIB003" value={runCode} onChange={e => setRunCode(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input placeholder="e.g. Library School Route" value={description} onChange={e => setDescription(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Pickup from Home</Label>
-                  <Input type="time" value={pickupHome} onChange={e => setPickupHome(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Pickup from School</Label>
-                  <Input type="time" value={pickupSchool} onChange={e => setPickupSchool(e.target.value)} />
-                </div>
-              </div>
-              <Button onClick={handleSaveRun} disabled={submitting} className="w-full">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+        <div className="flex gap-2">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleOpenDialog()} className="flex-1">
+                <Plus className="w-4 h-4 mr-2" /> Add Run
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingRun ? 'Edit Run' : 'Add School Run'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Run Code</Label>
+                  <Input placeholder="e.g. LIB003" value={runCode} onChange={e => setRunCode(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input placeholder="e.g. Library School Route" value={description} onChange={e => setDescription(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Pickup from Home</Label>
+                    <Input type="time" value={pickupHome} onChange={e => setPickupHome(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pickup from School</Label>
+                    <Input type="time" value={pickupSchool} onChange={e => setPickupSchool(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Duration (minutes per run)</Label>
+                  <Input type="number" min="15" step="15" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} />
+                </div>
+                <Button onClick={handleSaveRun} disabled={submitting} className="w-full">
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="outline" onClick={() => setHoursDialogOpen(true)}>
+            <Clock className="w-4 h-4 mr-2" /> Hours
+          </Button>
+        </div>
 
         {runs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No school runs yet</p>
@@ -249,14 +311,18 @@ export default function ManageSchoolRuns() {
                   </div>
                 </div>
 
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm flex-wrap">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <Sun className="w-4 h-4 text-amber-500" />
                     <span>Home: {run.pickup_time_home?.slice(0, 5) || '-'}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <Moon className="w-4 h-4 text-indigo-500" />
                     <span>School: {run.pickup_time_school?.slice(0, 5) || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span>{run.duration_minutes || 60} mins</span>
                   </div>
                 </div>
 
@@ -268,57 +334,181 @@ export default function ManageSchoolRuns() {
           </div>
         )}
 
-        {/* Allocation Dialog */}
+        {/* Allocation Dialog with AM/PM separation */}
         <Dialog open={allocDialogOpen} onOpenChange={setAllocDialogOpen}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
             <DialogHeader>
               <DialogTitle>Allocate Staff - {selectedRun?.run_code}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map(day => {
-                const alloc = selectedRun ? getAllocationForDay(selectedRun.id, day) : null;
+              {WORK_DAYS.map(day => {
+                const amAlloc = selectedRun ? getAllocationForDayShift(selectedRun.id, day, 'am') : null;
+                const pmAlloc = selectedRun ? getAllocationForDayShift(selectedRun.id, day, 'pm') : null;
+                
                 return (
                   <div key={day} className="p-3 border rounded-lg space-y-3">
-                    <p className="font-semibold">{DAYS[day]}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Driver</Label>
-                        <Select
-                          value={alloc?.driver_id || 'none'}
-                          onValueChange={v => handleSaveAllocation(day, v === 'none' ? null : v, alloc?.escort_id || null)}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {drivers.map(d => (
-                              <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <p className="font-semibold text-center">{DAYS[day]}</p>
+                    
+                    {/* Morning Shift */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-amber-600">
+                        <Sun className="w-4 h-4" /> Morning (AM)
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Escort</Label>
-                        <Select
-                          value={alloc?.escort_id || 'none'}
-                          onValueChange={v => handleSaveAllocation(day, alloc?.driver_id || null, v === 'none' ? null : v)}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {escorts.map(e => (
-                              <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Driver</Label>
+                          <Select
+                            value={amAlloc?.driver_id || 'none'}
+                            onValueChange={v => handleSaveAllocation(day, 'am', v === 'none' ? null : v, amAlloc?.escort_id || null)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {drivers.map(d => (
+                                <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Escort</Label>
+                          <Select
+                            value={amAlloc?.escort_id || 'none'}
+                            onValueChange={v => handleSaveAllocation(day, 'am', amAlloc?.driver_id || null, v === 'none' ? null : v)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {escorts.map(e => (
+                                <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Afternoon Shift */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-indigo-600">
+                        <Moon className="w-4 h-4" /> Afternoon (PM)
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Driver</Label>
+                          <Select
+                            value={pmAlloc?.driver_id || 'none'}
+                            onValueChange={v => handleSaveAllocation(day, 'pm', v === 'none' ? null : v, pmAlloc?.escort_id || null)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {drivers.map(d => (
+                                <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Escort</Label>
+                          <Select
+                            value={pmAlloc?.escort_id || 'none'}
+                            onValueChange={v => handleSaveAllocation(day, 'pm', pmAlloc?.driver_id || null, v === 'none' ? null : v)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {escorts.map(e => (
+                                <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Hours Summary Dialog */}
+        <Dialog open={hoursDialogOpen} onOpenChange={setHoursDialogOpen}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Weekly Hours Summary</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Drivers Section */}
+              <div>
+                <h3 className="font-semibold mb-3 text-primary">Drivers</h3>
+                {drivers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No drivers</p>
+                ) : (
+                  <div className="space-y-3">
+                    {drivers.map(driver => {
+                      const { dailyMinutes, totalMinutes } = calculateHours(driver.id, 'driver');
+                      if (totalMinutes === 0) return null;
+                      return (
+                        <div key={driver.id} className="p-3 border rounded-lg">
+                          <p className="font-medium mb-2">{driver.full_name}</p>
+                          <div className="grid grid-cols-5 gap-1 text-xs mb-2">
+                            {WORK_DAYS.map(day => (
+                              <div key={day} className="text-center">
+                                <div className="text-muted-foreground">{DAYS[day].slice(0, 3)}</div>
+                                <div className="font-medium">{formatMinutes(dailyMinutes[day])}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="text-right font-semibold text-primary">
+                            Week Total: {formatMinutes(totalMinutes)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Escorts Section */}
+              <div>
+                <h3 className="font-semibold mb-3 text-primary">Escorts</h3>
+                {escorts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No escorts</p>
+                ) : (
+                  <div className="space-y-3">
+                    {escorts.map(escort => {
+                      const { dailyMinutes, totalMinutes } = calculateHours(escort.id, 'escort');
+                      if (totalMinutes === 0) return null;
+                      return (
+                        <div key={escort.id} className="p-3 border rounded-lg">
+                          <p className="font-medium mb-2">{escort.full_name}</p>
+                          <div className="grid grid-cols-5 gap-1 text-xs mb-2">
+                            {WORK_DAYS.map(day => (
+                              <div key={day} className="text-center">
+                                <div className="text-muted-foreground">{DAYS[day].slice(0, 3)}</div>
+                                <div className="font-medium">{formatMinutes(dailyMinutes[day])}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="text-right font-semibold text-primary">
+                            Week Total: {formatMinutes(totalMinutes)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>

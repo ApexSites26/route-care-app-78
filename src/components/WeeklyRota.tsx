@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Clock, Route } from 'lucide-react';
+import { Calendar, Sun, Moon } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 interface RunAllocation {
   id: string;
   day_of_week: number;
+  shift_type: string;
   run: {
     run_code: string;
     description: string | null;
@@ -15,7 +16,6 @@ interface RunAllocation {
   };
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface WeeklyRotaProps {
@@ -35,7 +35,7 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
       
       const { data } = await supabase
         .from('run_allocations')
-        .select('id, day_of_week, run_id')
+        .select('id, day_of_week, run_id, shift_type')
         .eq(column, profile.id)
         .eq('is_active', true);
 
@@ -52,6 +52,7 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
         const enriched = data.map(a => ({
           id: a.id,
           day_of_week: a.day_of_week,
+          shift_type: a.shift_type,
           run: runMap.get(a.run_id) || { run_code: 'Unknown', description: null, pickup_time_home: null, pickup_time_school: null },
         }));
 
@@ -88,11 +89,12 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
     );
   }
 
-  // Group by day
-  const byDay: Record<number, RunAllocation[]> = {};
+  // Group by day and shift
+  const byDayShift: Record<string, RunAllocation[]> = {};
   allocations.forEach(a => {
-    if (!byDay[a.day_of_week]) byDay[a.day_of_week] = [];
-    byDay[a.day_of_week].push(a);
+    const key = `${a.day_of_week}-${a.shift_type}`;
+    if (!byDayShift[key]) byDayShift[key] = [];
+    byDayShift[key].push(a);
   });
 
   const todayIndex = new Date().getDay();
@@ -106,8 +108,10 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
       
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map(day => {
-          const dayAllocs = byDay[day] || [];
+          const amAllocs = byDayShift[`${day}-am`] || [];
+          const pmAllocs = byDayShift[`${day}-pm`] || [];
           const isToday = day === todayIndex;
+          const hasRuns = amAllocs.length > 0 || pmAllocs.length > 0;
           
           return (
             <div 
@@ -121,29 +125,53 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
                 </span>
               </div>
               
-              {dayAllocs.length === 0 ? (
+              {!hasRuns ? (
                 <p className="text-sm text-muted-foreground">No runs</p>
               ) : (
                 <div className="space-y-2">
-                  {dayAllocs.map(alloc => (
-                    <div key={alloc.id} className="flex items-center gap-3 text-sm">
-                      <span className="font-bold text-primary">{alloc.run.run_code}</span>
-                      <div className="flex gap-2 text-muted-foreground">
-                        {alloc.run.pickup_time_home && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {alloc.run.pickup_time_home.slice(0, 5)}
+                  {/* Morning Runs */}
+                  {amAllocs.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-1 text-amber-600 min-w-[50px]">
+                        <Sun className="w-4 h-4" />
+                        <span className="text-xs font-medium">AM</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {amAllocs.map(alloc => (
+                          <span key={alloc.id} className="font-bold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            {alloc.run.run_code}
+                            {alloc.run.pickup_time_home && (
+                              <span className="font-normal text-muted-foreground ml-1">
+                                @ {alloc.run.pickup_time_home.slice(0, 5)}
+                              </span>
+                            )}
                           </span>
-                        )}
-                        {alloc.run.pickup_time_school && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {alloc.run.pickup_time_school.slice(0, 5)}
-                          </span>
-                        )}
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Afternoon Runs */}
+                  {pmAllocs.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-1 text-indigo-600 min-w-[50px]">
+                        <Moon className="w-4 h-4" />
+                        <span className="text-xs font-medium">PM</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {pmAllocs.map(alloc => (
+                          <span key={alloc.id} className="font-bold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            {alloc.run.run_code}
+                            {alloc.run.pickup_time_school && (
+                              <span className="font-normal text-muted-foreground ml-1">
+                                @ {alloc.run.pickup_time_school.slice(0, 5)}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
