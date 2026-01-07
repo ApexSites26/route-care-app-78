@@ -205,6 +205,7 @@ export type Database = {
           id: string
           is_active: boolean
           run_id: string
+          shift_type: string
           updated_at: string
         }
         Insert: {
@@ -215,6 +216,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           run_id: string
+          shift_type?: string
           updated_at?: string
         }
         Update: {
@@ -225,6 +227,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           run_id?: string
+          shift_type?: string
           updated_at?: string
         }
         Relationships: [
@@ -255,6 +258,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          duration_minutes: number | null
           id: string
           is_active: boolean
           pickup_time_home: string | null
@@ -265,6 +269,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           is_active?: boolean
           pickup_time_home?: string | null
@@ -275,6 +280,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
           id?: string
           is_active?: boolean
           pickup_time_home?: string | null
