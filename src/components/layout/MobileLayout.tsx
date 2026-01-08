@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Home, FileText, Users, Car, ClipboardList, LogOut, Route, Wrench } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useBranding } from '@/hooks/useBranding';
 import { cn } from '@/lib/utils';
 
 interface MobileLayoutProps {
@@ -11,6 +12,7 @@ interface MobileLayoutProps {
 
 export function MobileLayout({ children, title }: MobileLayoutProps) {
   const { profile, signOut } = useAuth();
+  const { branding } = useBranding();
   const location = useLocation();
 
   const getNavItems = () => {
@@ -46,15 +48,20 @@ export function MobileLayout({ children, title }: MobileLayoutProps) {
       {/* Header */}
       <header className="bg-card border-b border-border px-4 py-3 safe-top sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">
-              {title || 'School Taxi'}
-            </h1>
-            {profile && (
-              <p className="text-xs text-muted-foreground capitalize">
-                {profile.full_name} • {profile.role}
-              </p>
+          <div className="flex items-center gap-3">
+            {branding.logo_url && (
+              <img src={branding.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-lg bg-white p-0.5" />
             )}
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">
+                {title || branding.company_name || 'School Taxi'}
+              </h1>
+              {profile && (
+                <p className="text-xs text-muted-foreground capitalize">
+                  {profile.full_name} • {profile.role}
+                </p>
+              )}
+            </div>
           </div>
           <button
             onClick={signOut}
