@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfWeek, endOfWeek, addDays, subWeeks, addWeeks } from 'date-fns';
-import { Loader2, Download, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Download, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const vehicleCheckLabels: Record<string, string> = {
@@ -55,6 +56,7 @@ export default function ViewEntries() {
   const [loading, setLoading] = useState(true);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const weekDates = DAYS.map((_, i) => addDays(weekStart, i));
@@ -128,24 +130,40 @@ export default function ViewEntries() {
 
   useEffect(() => { fetchEntries(); }, [weekStart]);
 
-  // Get entries for selected day
-  const dayDriverEntries = driverEntries.filter(e => e.entry_date === selectedDate);
-  const dayEscortEntries = escortEntries.filter(e => e.entry_date === selectedDate);
+  // Filter entries by search query
+  const filterBySearch = (entries: any[], nameKey: string) => {
+    if (!searchQuery.trim()) return entries;
+    const query = searchQuery.toLowerCase();
+    return entries.filter(e => e[nameKey]?.toLowerCase().includes(query));
+  };
 
-  // Calculate weekly totals per user
-  const driverWeeklyTotals = driverEntries.reduce((acc, e) => {
+  // Get entries for selected day (filtered)
+  const dayDriverEntries = useMemo(() => 
+    filterBySearch(driverEntries.filter(e => e.entry_date === selectedDate), 'driver_name'),
+    [driverEntries, selectedDate, searchQuery]
+  );
+  const dayEscortEntries = useMemo(() => 
+    filterBySearch(escortEntries.filter(e => e.entry_date === selectedDate), 'escort_name'),
+    [escortEntries, selectedDate, searchQuery]
+  );
+
+  // Calculate weekly totals per user (filtered)
+  const filteredDriverEntries = useMemo(() => filterBySearch(driverEntries, 'driver_name'), [driverEntries, searchQuery]);
+  const filteredEscortEntries = useMemo(() => filterBySearch(escortEntries, 'escort_name'), [escortEntries, searchQuery]);
+
+  const driverWeeklyTotals = filteredDriverEntries.reduce((acc, e) => {
     acc[e.user_id] = (acc[e.user_id] || 0) + e.daily_hours;
     return acc;
   }, {} as Record<string, number>);
 
-  const escortWeeklyTotals = escortEntries.reduce((acc, e) => {
+  const escortWeeklyTotals = filteredEscortEntries.reduce((acc, e) => {
     acc[e.user_id] = (acc[e.user_id] || 0) + e.daily_hours;
     return acc;
   }, {} as Record<string, number>);
 
-  // Get unique users for weekly summary
-  const uniqueDrivers = [...new Map(driverEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.driver_name }])).values()];
-  const uniqueEscorts = [...new Map(escortEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.escort_name }])).values()];
+  // Get unique users for weekly summary (filtered)
+  const uniqueDrivers = [...new Map(filteredDriverEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.driver_name }])).values()];
+  const uniqueEscorts = [...new Map(filteredEscortEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.escort_name }])).values()];
 
   const exportCSV = () => {
     const checkKeys = Object.keys(vehicleCheckLabels);
@@ -233,6 +251,17 @@ export default function ViewEntries() {
               <div className="text-[10px] opacity-75">{format(weekDates[i], 'd')}</div>
             </button>
           ))}
+        </div>
+
+        {/* Search Filter */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
         <div className="flex justify-end">

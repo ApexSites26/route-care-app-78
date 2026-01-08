@@ -19,10 +19,73 @@ const colorPresets = [
   { name: 'Indigo', value: '239 84% 67%' },
 ];
 
+// Convert hex to HSL
+const hexToHsl = (hex: string): string | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+  
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+};
+
+// Convert HSL string to hex
+const hslToHex = (hsl: string): string => {
+  const parts = hsl.match(/[\d.]+/g);
+  if (!parts || parts.length < 3) return '#3b82f6';
+  
+  const h = parseFloat(parts[0]) / 360;
+  const s = parseFloat(parts[1]) / 100;
+  const l = parseFloat(parts[2]) / 100;
+  
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
 export default function BrandingSettings() {
   const { branding, refetch } = useBranding();
   const [companyName, setCompanyName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
+  const [hexColor, setHexColor] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,6 +93,7 @@ export default function BrandingSettings() {
   useEffect(() => {
     setCompanyName(branding.company_name);
     setPrimaryColor(branding.primary_color);
+    setHexColor(hslToHex(branding.primary_color));
     setLogoUrl(branding.logo_url);
   }, [branding]);
 
@@ -109,8 +173,19 @@ export default function BrandingSettings() {
 
   const handleColorSelect = (color: string) => {
     setPrimaryColor(color);
-    // Preview the color
+    setHexColor(hslToHex(color));
     document.documentElement.style.setProperty('--primary', color);
+  };
+
+  const handleHexChange = (hex: string) => {
+    setHexColor(hex);
+    if (hex.match(/^#[0-9A-Fa-f]{6}$/)) {
+      const hsl = hexToHsl(hex);
+      if (hsl) {
+        setPrimaryColor(hsl);
+        document.documentElement.style.setProperty('--primary', hsl);
+      }
+    }
   };
 
   return (
@@ -176,6 +251,24 @@ export default function BrandingSettings() {
             <Palette className="w-4 h-4" />
             Primary Colour
           </Label>
+          
+          {/* Hex Input */}
+          <div className="flex gap-2 items-center">
+            <div 
+              className="w-10 h-10 rounded-lg border-2 border-border"
+              style={{ backgroundColor: `hsl(${primaryColor})` }}
+            />
+            <Input
+              value={hexColor}
+              onChange={(e) => handleHexChange(e.target.value)}
+              placeholder="#3b82f6"
+              className="font-mono"
+              maxLength={7}
+            />
+          </div>
+          
+          <p className="text-xs text-muted-foreground">Enter a hex code or choose a preset below</p>
+          
           <div className="grid grid-cols-4 gap-3">
             {colorPresets.map((color) => (
               <button
