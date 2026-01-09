@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ interface Profile {
 }
 
 export default function ManageUsers() {
+  const { profile } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -31,12 +33,13 @@ export default function ManageUsers() {
   const { toast } = useToast();
 
   const fetchProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('full_name');
+    if (!profile?.company_id) return;
+    const { data } = await supabase.from('profiles').select('*').eq('company_id', profile.company_id).order('full_name');
     setProfiles((data as Profile[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchProfiles(); }, []);
+  useEffect(() => { fetchProfiles(); }, [profile?.company_id]);
 
   const resetForm = () => {
     setNewName('');
@@ -45,11 +48,11 @@ export default function ManageUsers() {
     setEditingProfile(null);
   };
 
-  const handleOpenDialog = (profile?: Profile) => {
-    if (profile) {
-      setEditingProfile(profile);
-      setNewName(profile.full_name);
-      setNewRole(profile.role === 'manager' ? 'driver' : profile.role);
+  const handleOpenDialog = (p?: Profile) => {
+    if (p) {
+      setEditingProfile(p);
+      setNewName(p.full_name);
+      setNewRole(p.role === 'manager' ? 'driver' : p.role);
     } else {
       resetForm();
     }
@@ -62,13 +65,12 @@ export default function ManageUsers() {
   };
 
   const handleAddUser = async () => {
-    if (!newName.trim() || !newEmail.trim()) {
+    if (!newName.trim() || !newEmail.trim() || !profile?.company_id) {
       toast({ title: 'Please fill all fields', variant: 'destructive' });
       return;
     }
     setSaving(true);
 
-    // Create auth user with metadata - trigger will create profile with email as name
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: newEmail,
       password: 'TempPass123!',
@@ -84,20 +86,16 @@ export default function ManageUsers() {
       return;
     }
 
-    // Wait briefly for trigger to create profile, then update with correct name/role
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const { error: profileError } = await supabase.from('profiles')
-      .update({ full_name: newName.trim(), role: newRole })
+      .update({ full_name: newName.trim(), role: newRole, company_id: profile.company_id })
       .eq('user_id', authData.user.id);
 
     if (profileError) {
       toast({ title: 'Failed to update profile', description: profileError.message, variant: 'destructive' });
     } else {
-      toast({ 
-        title: 'User created', 
-        description: `They should check their email for a confirmation link, then log in with temporary password: TempPass123!` 
-      });
+      toast({ title: 'Staff member created', description: `They should check email and log in with: TempPass123!` });
       handleCloseDialog();
       fetchProfiles();
     }
@@ -116,9 +114,9 @@ export default function ManageUsers() {
       .eq('id', editingProfile.id);
 
     if (error) {
-      toast({ title: 'Failed to update user', description: error.message, variant: 'destructive' });
+      toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'User updated' });
+      toast({ title: 'Staff member updated' });
       handleCloseDialog();
       fetchProfiles();
     }
@@ -127,29 +125,21 @@ export default function ManageUsers() {
 
   const handleDeleteUser = async () => {
     if (!deleteProfile) return;
-    
     const { error } = await supabase.from('profiles').delete().eq('id', deleteProfile.id);
-    
-    if (error) {
-      toast({ title: 'Failed to delete user', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'User deleted' });
-      fetchProfiles();
-    }
+    if (error) toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
+    else { toast({ title: 'Staff member removed' }); fetchProfiles(); }
     setDeleteProfile(null);
   };
 
   return (
-    <MobileLayout title="Manage Users">
+    <MobileLayout title="Manage Staff">
       <div className="space-y-4 animate-fade-in">
         <Dialog open={dialogOpen} onOpenChange={(open) => open ? handleOpenDialog() : handleCloseDialog()}>
           <DialogTrigger asChild>
-            <Button className="w-full h-12"><Plus className="w-5 h-5 mr-2" />Add User</Button>
+            <Button className="w-full h-12"><Plus className="w-5 h-5 mr-2" />Add Staff Member</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingProfile ? 'Edit User' : 'Add New User'}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{editingProfile ? 'Edit Staff' : 'Add Staff Member'}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Full Name</Label>
@@ -172,7 +162,7 @@ export default function ManageUsers() {
                 </Select>
               </div>
               <Button onClick={editingProfile ? handleUpdateUser : handleAddUser} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingProfile ? 'Update User' : 'Create User')}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingProfile ? 'Update' : 'Create')}
               </Button>
             </div>
           </DialogContent>
@@ -181,7 +171,7 @@ export default function ManageUsers() {
         {loading ? (
           <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></div>
         ) : profiles.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No users yet</p>
+          <p className="text-center text-muted-foreground py-8">No staff members yet</p>
         ) : (
           <div className="space-y-2">
             {profiles.map((p) => (
@@ -193,12 +183,8 @@ export default function ManageUsers() {
                   <p className="font-medium text-foreground">{p.full_name}</p>
                   <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)}><Pencil className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
               </div>
             ))}
           </div>
@@ -207,16 +193,12 @@ export default function ManageUsers() {
         <AlertDialog open={!!deleteProfile} onOpenChange={(open) => !open && setDeleteProfile(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete User</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete {deleteProfile?.full_name}? This action cannot be undone.
-              </AlertDialogDescription>
+              <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to remove {deleteProfile?.full_name}?</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

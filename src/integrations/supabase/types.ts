@@ -14,26 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
-      app_settings: {
+      audit_logs: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          record_id: string | null
+          table_name: string
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id?: string | null
+          table_name: string
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id?: string | null
+          table_name?: string
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
         Row: {
           created_at: string
           id: string
-          setting_key: string
-          setting_value: Json
+          logo_url: string | null
+          name: string
+          primary_color: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
-          setting_key: string
-          setting_value?: Json
+          logo_url?: string | null
+          name: string
+          primary_color?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
-          setting_key?: string
-          setting_value?: Json
+          logo_url?: string | null
+          name?: string
+          primary_color?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -59,6 +106,7 @@ export type Database = {
           check_tyres_wheels: boolean | null
           check_windows: boolean | null
           check_wipers_washers: boolean | null
+          company_id: string | null
           created_at: string
           end_mileage: number | null
           entry_date: string
@@ -92,6 +140,7 @@ export type Database = {
           check_tyres_wheels?: boolean | null
           check_windows?: boolean | null
           check_wipers_washers?: boolean | null
+          company_id?: string | null
           created_at?: string
           end_mileage?: number | null
           entry_date?: string
@@ -125,6 +174,7 @@ export type Database = {
           check_tyres_wheels?: boolean | null
           check_windows?: boolean | null
           check_wipers_washers?: boolean | null
+          company_id?: string | null
           created_at?: string
           end_mileage?: number | null
           entry_date?: string
@@ -140,6 +190,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "driver_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "driver_entries_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -152,6 +209,7 @@ export type Database = {
         Row: {
           afternoon_finish_time: string | null
           afternoon_start_time: string | null
+          company_id: string | null
           created_at: string
           entry_date: string
           id: string
@@ -165,6 +223,7 @@ export type Database = {
         Insert: {
           afternoon_finish_time?: string | null
           afternoon_start_time?: string | null
+          company_id?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -178,6 +237,7 @@ export type Database = {
         Update: {
           afternoon_finish_time?: string | null
           afternoon_start_time?: string | null
+          company_id?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -188,10 +248,19 @@ export type Database = {
           submitted_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "escort_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
+          company_id: string | null
           created_at: string
           full_name: string
           id: string
@@ -201,6 +270,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           full_name: string
           id?: string
@@ -210,6 +280,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -218,10 +289,19 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       run_allocations: {
         Row: {
+          company_id: string | null
           created_at: string
           day_of_week: number
           driver_id: string | null
@@ -233,6 +313,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           day_of_week: number
           driver_id?: string | null
@@ -244,6 +325,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           day_of_week?: number
           driver_id?: string | null
@@ -255,6 +337,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "run_allocations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "run_allocations_driver_id_fkey"
             columns: ["driver_id"]
@@ -280,6 +369,7 @@ export type Database = {
       }
       school_runs: {
         Row: {
+          company_id: string | null
           created_at: string
           description: string | null
           duration_minutes: number | null
@@ -291,6 +381,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
@@ -302,6 +393,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
@@ -312,7 +404,15 @@ export type Database = {
           run_code?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "school_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -334,6 +434,7 @@ export type Database = {
       }
       vehicle_maintenance: {
         Row: {
+          company_id: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -344,6 +445,7 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -354,6 +456,7 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -364,6 +467,13 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicle_maintenance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vehicle_maintenance_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -376,6 +486,7 @@ export type Database = {
       vehicles: {
         Row: {
           assigned_driver_id: string | null
+          company_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -386,6 +497,7 @@ export type Database = {
         }
         Insert: {
           assigned_driver_id?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -396,6 +508,7 @@ export type Database = {
         }
         Update: {
           assigned_driver_id?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -412,6 +525,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vehicles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -419,6 +539,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
