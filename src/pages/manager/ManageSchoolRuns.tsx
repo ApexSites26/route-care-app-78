@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Plus, Clock, Users, Pencil, Trash2, Sun, Moon } from 'lucide-react';
 
 interface SchoolRun {
@@ -39,6 +40,7 @@ const WORK_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
 
 export default function ManageSchoolRuns() {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<SchoolRun[]>([]);
   const [drivers, setDrivers] = useState<Profile[]>([]);
@@ -126,7 +128,10 @@ export default function ManageSchoolRuns() {
         fetchData();
       }
     } else {
-      const { error } = await supabase.from('school_runs').insert(runData);
+      const { error } = await supabase.from('school_runs').insert({
+        ...runData,
+        company_id: profile?.company_id,
+      });
       if (error) {
         toast({ title: 'Failed to create', description: error.message, variant: 'destructive' });
       } else {
@@ -180,6 +185,7 @@ export default function ManageSchoolRuns() {
         shift_type: shiftType,
         driver_id: driverId || null,
         escort_id: escortId || null,
+        company_id: profile?.company_id,
       });
       if (error) {
         toast({ title: 'Failed to save', description: error.message, variant: 'destructive' });

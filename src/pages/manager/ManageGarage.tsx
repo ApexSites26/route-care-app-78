@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Plus, Wrench, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,7 @@ const MAINTENANCE_TYPES = [
 
 export default function ManageGarage() {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [maintenanceItems, setMaintenanceItems] = useState<MaintenanceItem[]>([]);
@@ -96,6 +98,7 @@ export default function ManageGarage() {
       maintenance_type: maintenanceType,
       description: description.trim() || null,
       is_urgent: isUrgent,
+      company_id: profile?.company_id,
     });
 
     if (error) {
