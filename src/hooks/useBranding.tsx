@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 interface BrandingSettings {
   logo_url: string | null;
@@ -16,7 +17,7 @@ interface BrandingContextType {
 const defaultBranding: BrandingSettings = {
   logo_url: null,
   primary_color: '222 47% 51%',
-  company_name: 'School Taxi',
+  company_name: 'Staff Manager',
 };
 
 const BrandingContext = createContext<BrandingContextType>({
@@ -26,25 +27,37 @@ const BrandingContext = createContext<BrandingContextType>({
 });
 
 export function BrandingProvider({ children }: { children: ReactNode }) {
+  const { profile } = useAuth();
   const [branding, setBranding] = useState<BrandingSettings>(defaultBranding);
   const [loading, setLoading] = useState(true);
 
   const fetchBranding = async () => {
+    if (!profile?.company_id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'branding')
-        .single();
+        .from('companies')
+        .select('name, logo_url, primary_color')
+        .eq('id', profile.company_id)
+        .maybeSingle();
 
       if (error) throw error;
       
-      if (data?.setting_value) {
-        const settings = data.setting_value as unknown as BrandingSettings;
+      if (data) {
+        const settings: BrandingSettings = {
+          company_name: data.name || defaultBranding.company_name,
+          logo_url: data.logo_url,
+          primary_color: data.primary_color || defaultBranding.primary_color,
+        };
         setBranding(settings);
         
         // Apply primary color to CSS variable
-        document.documentElement.style.setProperty('--primary', settings.primary_color);
+        if (settings.primary_color) {
+          document.documentElement.style.setProperty('--primary', settings.primary_color);
+        }
       }
     } catch (error) {
       console.error('Error fetching branding:', error);
@@ -54,8 +67,12 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchBranding();
-  }, []);
+    if (profile) {
+      fetchBranding();
+    } else {
+      setLoading(false);
+    }
+  }, [profile?.company_id]);
 
   return (
     <BrandingContext.Provider value={{ branding, loading, refetch: fetchBranding }}>

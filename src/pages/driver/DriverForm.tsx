@@ -234,6 +234,7 @@ export default function DriverForm() {
 
     const { error } = await supabase.from('driver_entries').insert({
       user_id: user!.id,
+      company_id: profile?.company_id,
       entry_date: today,
       vehicle_id: vehicle?.id || null,
       morning_start_time: morningStart,

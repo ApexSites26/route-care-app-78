@@ -13,13 +13,14 @@ import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverForm from "./pages/driver/DriverForm";
 import EscortDashboard from "./pages/escort/EscortDashboard";
 import EscortForm from "./pages/escort/EscortForm";
-import ManagerDashboard from "./pages/manager/ManagerDashboard";
+import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManageUsers from "./pages/manager/ManageUsers";
 import ManageVehicles from "./pages/manager/ManageVehicles";
 import ManageSchoolRuns from "./pages/manager/ManageSchoolRuns";
 import ManageGarage from "./pages/manager/ManageGarage";
 import ViewEntries from "./pages/manager/ViewEntries";
 import BrandingSettings from "./pages/manager/BrandingSettings";
+import AuditLogs from "./pages/manager/AuditLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,13 +47,14 @@ const App = () => (
               <Route path="/escort/form" element={<ProtectedRoute allowedRoles={['escort']}><EscortForm /></ProtectedRoute>} />
               
               {/* Manager Routes */}
-              <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerDashboard /></ProtectedRoute>} />
+              <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerOverview /></ProtectedRoute>} />
               <Route path="/manager/users" element={<ProtectedRoute allowedRoles={['manager']}><ManageUsers /></ProtectedRoute>} />
               <Route path="/manager/vehicles" element={<ProtectedRoute allowedRoles={['manager']}><ManageVehicles /></ProtectedRoute>} />
               <Route path="/manager/runs" element={<ProtectedRoute allowedRoles={['manager']}><ManageSchoolRuns /></ProtectedRoute>} />
               <Route path="/manager/garage" element={<ProtectedRoute allowedRoles={['manager']}><ManageGarage /></ProtectedRoute>} />
               <Route path="/manager/entries" element={<ProtectedRoute allowedRoles={['manager']}><ViewEntries /></ProtectedRoute>} />
               <Route path="/manager/branding" element={<ProtectedRoute allowedRoles={['manager']}><BrandingSettings /></ProtectedRoute>} />
+              <Route path="/manager/audit" element={<ProtectedRoute allowedRoles={['manager']}><AuditLogs /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

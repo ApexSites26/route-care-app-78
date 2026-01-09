@@ -30,7 +30,7 @@ interface ExistingEntry {
 }
 
 export default function EscortForm() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -139,6 +139,7 @@ export default function EscortForm() {
 
     const { error } = await supabase.from('escort_entries').insert({
       user_id: user!.id,
+      company_id: profile?.company_id,
       entry_date: today,
       morning_start_time: morningStart,
       morning_finish_time: morningFinish,

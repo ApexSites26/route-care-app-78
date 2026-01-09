@@ -11,6 +11,7 @@ interface Profile {
   full_name: string;
   role: AppRole;
   is_active: boolean;
+  company_id: string | null;
 }
 
 interface AuthContextType {

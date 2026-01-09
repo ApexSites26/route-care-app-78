@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Palette, Building2, Check } from 'lucide-react';
 import { useBranding } from '@/hooks/useBranding';
+import { useAuth } from '@/hooks/useAuth';
 
 const colorPresets = [
   { name: 'Blue', value: '222 47% 51%' },
@@ -83,6 +84,7 @@ const hslToHex = (hsl: string): string => {
 
 export default function BrandingSettings() {
   const { branding, refetch } = useBranding();
+  const { profile } = useAuth();
   const [companyName, setCompanyName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
   const [hexColor, setHexColor] = useState('');
@@ -114,7 +116,7 @@ export default function BrandingSettings() {
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `company-logo.${fileExt}`;
+      const fileName = `${profile?.company_id}-logo.${fileExt}`;
 
       // Delete old logo if exists
       if (logoUrl) {
@@ -144,18 +146,21 @@ export default function BrandingSettings() {
   };
 
   const handleSave = async () => {
+    if (!profile?.company_id) {
+      toast.error('No company associated with your account');
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('app_settings')
+        .from('companies')
         .update({
-          setting_value: {
-            logo_url: logoUrl,
-            primary_color: primaryColor,
-            company_name: companyName,
-          },
+          name: companyName,
+          logo_url: logoUrl,
+          primary_color: primaryColor,
         })
-        .eq('setting_key', 'branding');
+        .eq('id', profile.company_id);
 
       if (error) throw error;
 
@@ -163,9 +168,9 @@ export default function BrandingSettings() {
       document.documentElement.style.setProperty('--primary', primaryColor);
       
       await refetch();
-      toast.success('Branding saved successfully');
+      toast.success('Company settings saved successfully');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save branding');
+      toast.error(error.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -189,7 +194,7 @@ export default function BrandingSettings() {
   };
 
   return (
-    <MobileLayout title="Branding Settings">
+    <MobileLayout title="Company Settings">
       <div className="space-y-6 animate-fade-in">
         {/* Preview Card */}
         <div className="touch-card bg-primary/10 border-2 border-primary/20">
@@ -295,7 +300,7 @@ export default function BrandingSettings() {
           className="w-full"
           size="lg"
         >
-          {saving ? 'Saving...' : 'Save Branding'}
+          {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
     </MobileLayout>
