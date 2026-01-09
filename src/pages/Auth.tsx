@@ -30,6 +30,16 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if this is a password recovery flow - don't redirect
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecovery = hashParams.get('type') === 'recovery';
+    
+    if (isRecovery) {
+      // Let Supabase handle the recovery, then redirect to reset password page
+      navigate('/auth/reset-password');
+      return;
+    }
+
     if (!authLoading && user && profile) {
       // Redirect based on role
       switch (profile.role) {
