@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Loader2, User, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Loader2, User, Pencil, Trash2, Clock } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -17,11 +17,17 @@ interface Profile {
   full_name: string;
   role: 'driver' | 'escort' | 'manager';
   is_active: boolean;
+  contracted_hours: number | null;
+}
+
+interface WorkedHours {
+  [profileId: string]: number;
 }
 
 export default function ManageUsers() {
   const { profile } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [workedHours, setWorkedHours] = useState<WorkedHours>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,6 +36,7 @@ export default function ManageUsers() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<'driver' | 'escort'>('driver');
+  const [newContractedHours, setNewContractedHours] = useState('40');
   const { toast } = useToast();
 
   const fetchProfiles = async () => {
@@ -39,12 +46,85 @@ export default function ManageUsers() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProfiles(); }, [profile?.company_id]);
+  const fetchWorkedHours = async () => {
+    if (!profile?.company_id) return;
+    
+    // Get current week's Monday and Sunday
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const mondayStr = monday.toISOString().split('T')[0];
+    const sundayStr = sunday.toISOString().split('T')[0];
+
+    // Fetch driver entries for this week
+    const { data: driverEntries } = await supabase
+      .from('driver_entries')
+      .select('user_id, morning_start_time, morning_finish_time, afternoon_start_time, afternoon_finish_time')
+      .eq('company_id', profile.company_id)
+      .gte('entry_date', mondayStr)
+      .lte('entry_date', sundayStr);
+
+    // Fetch escort entries for this week
+    const { data: escortEntries } = await supabase
+      .from('escort_entries')
+      .select('user_id, morning_start_time, morning_finish_time, afternoon_start_time, afternoon_finish_time')
+      .eq('company_id', profile.company_id)
+      .gte('entry_date', mondayStr)
+      .lte('entry_date', sundayStr);
+
+    const hours: WorkedHours = {};
+
+    const calculateHours = (start: string | null, finish: string | null): number => {
+      if (!start || !finish) return 0;
+      const [startH, startM] = start.split(':').map(Number);
+      const [finishH, finishM] = finish.split(':').map(Number);
+      return (finishH + finishM / 60) - (startH + startM / 60);
+    };
+
+    // Get profiles to map user_id to profile id
+    const { data: allProfiles } = await supabase
+      .from('profiles')
+      .select('id, user_id')
+      .eq('company_id', profile.company_id);
+
+    const userToProfile: { [userId: string]: string } = {};
+    allProfiles?.forEach(p => { userToProfile[p.user_id] = p.id; });
+
+    driverEntries?.forEach(entry => {
+      const profileId = userToProfile[entry.user_id];
+      if (!profileId) return;
+      const morningHours = calculateHours(entry.morning_start_time, entry.morning_finish_time);
+      const afternoonHours = calculateHours(entry.afternoon_start_time, entry.afternoon_finish_time);
+      hours[profileId] = (hours[profileId] || 0) + morningHours + afternoonHours;
+    });
+
+    escortEntries?.forEach(entry => {
+      const profileId = userToProfile[entry.user_id];
+      if (!profileId) return;
+      const morningHours = calculateHours(entry.morning_start_time, entry.morning_finish_time);
+      const afternoonHours = calculateHours(entry.afternoon_start_time, entry.afternoon_finish_time);
+      hours[profileId] = (hours[profileId] || 0) + morningHours + afternoonHours;
+    });
+
+    setWorkedHours(hours);
+  };
+
+  useEffect(() => { 
+    fetchProfiles(); 
+    fetchWorkedHours();
+  }, [profile?.company_id]);
 
   const resetForm = () => {
     setNewName('');
     setNewEmail('');
     setNewRole('driver');
+    setNewContractedHours('40');
     setEditingProfile(null);
   };
 
@@ -53,6 +133,7 @@ export default function ManageUsers() {
       setEditingProfile(p);
       setNewName(p.full_name);
       setNewRole(p.role === 'manager' ? 'driver' : p.role);
+      setNewContractedHours(String(p.contracted_hours ?? 40));
     } else {
       resetForm();
     }
@@ -65,18 +146,21 @@ export default function ManageUsers() {
   };
 
   const handleAddUser = async () => {
-    if (!newName.trim() || !newEmail.trim() || !profile?.company_id) {
+    const trimmedName = newName.trim();
+    const trimmedEmail = newEmail.trim();
+    
+    if (!trimmedName || !trimmedEmail || !profile?.company_id) {
       toast({ title: 'Please fill all fields', variant: 'destructive' });
       return;
     }
     setSaving(true);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: newEmail,
+      email: trimmedEmail,
       password: 'TempPass123!',
       options: { 
         emailRedirectTo: window.location.origin,
-        data: { full_name: newName.trim() }
+        data: { full_name: trimmedName }
       }
     });
 
@@ -89,7 +173,12 @@ export default function ManageUsers() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const { error: profileError } = await supabase.from('profiles')
-      .update({ full_name: newName.trim(), role: newRole, company_id: profile.company_id })
+      .update({ 
+        full_name: trimmedName, 
+        role: newRole, 
+        company_id: profile.company_id,
+        contracted_hours: parseFloat(newContractedHours) || 40
+      })
       .eq('user_id', authData.user.id);
 
     if (profileError) {
@@ -110,7 +199,11 @@ export default function ManageUsers() {
     setSaving(true);
 
     const { error } = await supabase.from('profiles')
-      .update({ full_name: newName.trim(), role: newRole })
+      .update({ 
+        full_name: newName.trim(), 
+        role: newRole,
+        contracted_hours: parseFloat(newContractedHours) || 40
+      })
       .eq('id', editingProfile.id);
 
     if (error) {
@@ -131,13 +224,20 @@ export default function ManageUsers() {
     setDeleteProfile(null);
   };
 
+  const getOvertimeHours = (p: Profile): number => {
+    const worked = workedHours[p.id] || 0;
+    const contracted = p.contracted_hours ?? 40;
+    return Math.max(0, worked - contracted);
+  };
+
   return (
     <MobileLayout title="Manage Staff">
       <div className="space-y-4 animate-fade-in">
-        <Dialog open={dialogOpen} onOpenChange={(open) => open ? handleOpenDialog() : handleCloseDialog()}>
-          <DialogTrigger asChild>
-            <Button className="w-full h-12"><Plus className="w-5 h-5 mr-2" />Add Staff Member</Button>
-          </DialogTrigger>
+        <Button className="w-full h-12" onClick={() => handleOpenDialog()}>
+          <Plus className="w-5 h-5 mr-2" />Add Staff Member
+        </Button>
+
+        <Dialog open={dialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
           <DialogContent>
             <DialogHeader><DialogTitle>{editingProfile ? 'Edit Staff' : 'Add Staff Member'}</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
@@ -161,6 +261,17 @@ export default function ManageUsers() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Weekly Contracted Hours</Label>
+                <Input 
+                  type="number" 
+                  value={newContractedHours} 
+                  onChange={(e) => setNewContractedHours(e.target.value)} 
+                  placeholder="40"
+                  min="0"
+                  max="168"
+                />
+              </div>
               <Button onClick={editingProfile ? handleUpdateUser : handleAddUser} disabled={saving} className="w-full">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingProfile ? 'Update' : 'Create')}
               </Button>
@@ -174,19 +285,38 @@ export default function ManageUsers() {
           <p className="text-center text-muted-foreground py-8">No staff members yet</p>
         ) : (
           <div className="space-y-2">
-            {profiles.map((p) => (
-              <div key={p.id} className="touch-card flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
+            {profiles.map((p) => {
+              const worked = workedHours[p.id] || 0;
+              const overtime = getOvertimeHours(p);
+              return (
+                <div key={p.id} className="touch-card flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">{p.full_name}</p>
+                    <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {p.contracted_hours ?? 40}h contracted
+                      </span>
+                      {overtime > 0 && (
+                        <span className="text-amber-600 font-medium">
+                          +{overtime.toFixed(1)}h overtime
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)} className="shrink-0">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{p.full_name}</p>
-                  <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)}><Pencil className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
