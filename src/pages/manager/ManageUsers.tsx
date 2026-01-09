@@ -149,8 +149,16 @@ export default function ManageUsers() {
     const trimmedName = newName.trim();
     const trimmedEmail = newEmail.trim();
     
-    if (!trimmedName || !trimmedEmail || !profile?.company_id) {
-      toast({ title: 'Please fill all fields', variant: 'destructive' });
+    if (!trimmedName) {
+      toast({ title: 'Please enter a name', variant: 'destructive' });
+      return;
+    }
+    if (!trimmedEmail) {
+      toast({ title: 'Please enter an email', variant: 'destructive' });
+      return;
+    }
+    if (!profile?.company_id) {
+      toast({ title: 'Session error - please refresh the page', variant: 'destructive' });
       return;
     }
     setSaving(true);
