@@ -8,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Plus, Loader2, Car, Pencil, Trash2 } from 'lucide-react';
 
 interface Vehicle { id: string; registration: string; make: string | null; model: string | null; assigned_driver_id: string | null; }
 interface Profile { id: string; full_name: string; role: string; }
 
 export default function ManageVehicles() {
+  const { profile } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +75,7 @@ export default function ManageVehicles() {
       make: make.trim() || null,
       model: model.trim() || null,
       assigned_driver_id: driverId || null,
+      company_id: profile?.company_id,
     });
     if (error) toast({ title: 'Failed', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Vehicle added' }); handleCloseDialog(); fetchData(); }
