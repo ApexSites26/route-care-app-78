@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Loader2, User, Pencil, Trash2, Clock } from 'lucide-react';
+import { Plus, Loader2, User, Pencil, Trash2, Clock, BarChart3 } from 'lucide-react';
+import { StaffHoursBreakdown } from '@/components/StaffHoursBreakdown';
 
 interface Profile {
   id: string;
@@ -33,6 +34,7 @@ export default function ManageUsers() {
   const [saving, setSaving] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
+  const [viewHoursProfile, setViewHoursProfile] = useState<Profile | null>(null);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<'driver' | 'escort'>('driver');
@@ -246,8 +248,13 @@ export default function ManageUsers() {
         </Button>
 
         <Dialog open={dialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingProfile ? 'Edit Staff' : 'Add Staff Member'}</DialogTitle></DialogHeader>
+          <DialogContent aria-describedby="staff-dialog-description">
+            <DialogHeader>
+              <DialogTitle>{editingProfile ? 'Edit Staff' : 'Add Staff Member'}</DialogTitle>
+              <DialogDescription id="staff-dialog-description">
+                {editingProfile ? 'Update staff member details.' : 'Add a new staff member to your team.'}
+              </DialogDescription>
+            </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Full Name</Label>
@@ -298,10 +305,13 @@ export default function ManageUsers() {
               const overtime = getOvertimeHours(p);
               return (
                 <div key={p.id} className="touch-card flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <div 
+                    className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 cursor-pointer hover:bg-primary/20 transition-colors"
+                    onClick={() => setViewHoursProfile(p)}
+                  >
                     <User className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewHoursProfile(p)}>
                     <p className="font-medium text-foreground truncate">{p.full_name}</p>
                     <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
@@ -316,10 +326,13 @@ export default function ManageUsers() {
                       )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)} className="shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => setViewHoursProfile(p)} className="shrink-0" title="View hours breakdown">
+                    <BarChart3 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(p)} className="shrink-0" title="Edit">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => setDeleteProfile(p)} className="text-destructive hover:text-destructive shrink-0" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -340,6 +353,12 @@ export default function ManageUsers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <StaffHoursBreakdown 
+          profile={viewHoursProfile}
+          open={!!viewHoursProfile}
+          onOpenChange={(open) => !open && setViewHoursProfile(null)}
+        />
       </div>
     </MobileLayout>
   );
