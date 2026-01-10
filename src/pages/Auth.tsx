@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Bus, Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
+import { Bus, Mail, Lock, Loader2, ArrowLeft, Building2 } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -303,6 +303,14 @@ export default function Auth() {
               <p className="text-xs text-center text-muted-foreground">
                 After signing up, your manager will assign your role (Driver or Escort).
               </p>
+
+              {/* Register Company Link */}
+              <div className="pt-4 border-t">
+                <Link to="/register" className="flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors">
+                  <Building2 className="w-4 h-4" />
+                  <span className="text-sm font-medium">Register a new company</span>
+                </Link>
+              </div>
             </>
           )}
         </div>

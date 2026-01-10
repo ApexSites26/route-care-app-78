@@ -554,6 +554,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      register_company: {
+        Args: { company_name: string; user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "driver" | "escort" | "manager"
