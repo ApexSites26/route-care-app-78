@@ -30,16 +30,17 @@ export default function ManageVehicles() {
   const { toast } = useToast();
 
   const fetchData = async () => {
+    if (!profile?.company_id) return;
     const [{ data: v }, { data: d }] = await Promise.all([
-      supabase.from('vehicles').select('*').order('registration'),
-      supabase.from('profiles').select('*').eq('role', 'driver'),
+      supabase.from('vehicles').select('*').eq('company_id', profile.company_id).order('registration'),
+      supabase.from('profiles').select('*').eq('company_id', profile.company_id).eq('role', 'driver'),
     ]);
     setVehicles((v as Vehicle[]) || []);
     setDrivers((d as Profile[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [profile?.company_id]);
 
   const resetForm = () => {
     setReg('');
