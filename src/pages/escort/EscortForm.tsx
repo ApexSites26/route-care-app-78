@@ -230,12 +230,19 @@ export default function EscortForm() {
           <p className="text-lg font-semibold text-foreground">{displayDate}</p>
         </div>
 
-        {/* Morning Route */}
+{/* Morning Route */}
         <div className={cn("form-section", morningComplete && "opacity-60")}>
           <div className="flex items-center gap-2 mb-2">
             <Sun className="w-5 h-5 text-warning" />
             <h3 className="font-semibold text-foreground">Morning Route</h3>
-            {morningComplete && <CheckCircle2 className="w-5 h-5 text-success ml-auto" />}
+            {morningComplete ? (
+              <CheckCircle2 className="w-5 h-5 text-success ml-auto" />
+            ) : (!morningStart || !morningFinish) && (
+              <span className="ml-auto text-xs text-amber-600 font-medium flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Required
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -384,12 +384,19 @@ export default function DriverForm() {
           </div>
         )}
 
-        {/* Morning Route */}
+{/* Morning Route */}
         <div className={cn("form-section", morningComplete && "opacity-60")}>
           <div className="flex items-center gap-2 mb-2">
             <Sun className="w-5 h-5 text-warning" />
             <h3 className="font-semibold text-foreground">Morning Route</h3>
-            {morningComplete && <CheckCircle2 className="w-5 h-5 text-success ml-auto" />}
+            {morningComplete ? (
+              <CheckCircle2 className="w-5 h-5 text-success ml-auto" />
+            ) : (!morningStart || !morningFinish) && (
+              <span className="ml-auto text-xs text-amber-600 font-medium flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Required
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -403,11 +410,16 @@ export default function DriverForm() {
           </div>
         </div>
 
-        {/* Mileage */}
         <div className="form-section">
           <div className="flex items-center gap-2 mb-4">
             <Gauge className="w-5 h-5 text-primary" />
             <h3 className="font-semibold text-foreground">Mileage</h3>
+            {!morningComplete && !startMileage && (
+              <span className="ml-auto text-xs text-amber-600 font-medium flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Required
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -458,12 +470,18 @@ export default function DriverForm() {
           </div>
         )}
 
-        {/* Vehicle Checklist - only show when submitting morning */}
+{/* Vehicle Checklist - only show when submitting morning */}
         {!morningComplete && (
           <div className="form-section">
             <div className="flex items-center gap-2 mb-4">
               <Car className="w-5 h-5 text-primary" />
               <h3 className="font-semibold text-foreground">Vehicle Checklist</h3>
+              {vehicleCheckItems.some(item => checks[item.key] === null) && (
+                <span className="ml-auto text-xs text-amber-600 font-medium flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Incomplete
+                </span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mb-4">Tap ✓ for pass or ✗ for fail</p>
             <div className="space-y-3">
