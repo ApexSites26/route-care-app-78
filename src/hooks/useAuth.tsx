@@ -12,6 +12,7 @@ interface Profile {
   role: AppRole;
   is_active: boolean;
   company_id: string | null;
+  contracted_hours: number | null;
 }
 
 interface AuthContextType {
