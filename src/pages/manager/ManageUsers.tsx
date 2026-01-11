@@ -188,27 +188,35 @@ export default function ManageUsers() {
       }
     });
 
-    if (authError || !authData.user) {
-      toast({ title: 'Failed to create user', description: authError?.message, variant: 'destructive' });
+    if (authError) {
+      toast({ title: 'Failed to create user', description: authError.message, variant: 'destructive' });
       setSaving(false);
       return;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const { error: profileError } = await supabase.from('profiles')
-      .update({ 
-        full_name: trimmedName, 
-        role: newRole, 
-        company_id: profile.company_id,
-        contracted_hours: parseFloat(newContractedHours) || 40
-      })
-      .eq('user_id', authData.user.id);
+    if (!authData.user) {
+      toast({ title: 'Failed to create user', description: 'No user returned', variant: 'destructive' });
+      setSaving(false);
+      return;
+    }
 
-    if (profileError) {
-      toast({ title: 'Failed to update profile', description: profileError.message, variant: 'destructive' });
+    // Wait for the trigger to create the profile
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Use the security definer function to assign staff to company
+    const { error: assignError } = await supabase.rpc('add_staff_to_company', {
+      _user_id: authData.user.id,
+      _company_id: profile.company_id,
+      _full_name: trimmedName,
+      _role: newRole,
+      _contracted_hours: parseFloat(newContractedHours) || 40
+    });
+
+    if (assignError) {
+      console.error('Error assigning staff:', assignError);
+      toast({ title: 'Failed to assign staff to company', description: assignError.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Staff member created', description: `They should check email and log in with: TempPass123!` });
+      toast({ title: 'Staff member created', description: `They should log in with password: TempPass123!` });
       handleCloseDialog();
       fetchProfiles();
     }
