@@ -42,10 +42,21 @@ export default function ManageUsers() {
   const { toast } = useToast();
 
   const fetchProfiles = async () => {
-    if (!profile?.company_id) return;
-    const { data } = await supabase.from('profiles').select('*').eq('company_id', profile.company_id).order('full_name');
-    setProfiles((data as Profile[]) || []);
-    setLoading(false);
+    if (!profile?.company_id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('company_id', profile.company_id).order('full_name');
+      if (error) {
+        console.error('Error fetching profiles:', error);
+      }
+      setProfiles((data as Profile[]) || []);
+    } catch (error) {
+      console.error('Error in fetchProfiles:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchWorkedHours = async () => {
@@ -118,8 +129,11 @@ export default function ManageUsers() {
   };
 
   useEffect(() => { 
-    fetchProfiles(); 
-    fetchWorkedHours();
+    if (profile?.company_id) {
+      setLoading(true);
+      fetchProfiles(); 
+      fetchWorkedHours();
+    }
   }, [profile?.company_id]);
 
   const resetForm = () => {

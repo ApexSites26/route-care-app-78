@@ -30,17 +30,32 @@ export default function ManageVehicles() {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    if (!profile?.company_id) return;
-    const [{ data: v }, { data: d }] = await Promise.all([
-      supabase.from('vehicles').select('*').eq('company_id', profile.company_id).order('registration'),
-      supabase.from('profiles').select('*').eq('company_id', profile.company_id).eq('role', 'driver'),
-    ]);
-    setVehicles((v as Vehicle[]) || []);
-    setDrivers((d as Profile[]) || []);
-    setLoading(false);
+    if (!profile?.company_id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [{ data: v, error: vError }, { data: d, error: dError }] = await Promise.all([
+        supabase.from('vehicles').select('*').eq('company_id', profile.company_id).order('registration'),
+        supabase.from('profiles').select('*').eq('company_id', profile.company_id).eq('role', 'driver'),
+      ]);
+      if (vError) console.error('Error fetching vehicles:', vError);
+      if (dError) console.error('Error fetching drivers:', dError);
+      setVehicles((v as Vehicle[]) || []);
+      setDrivers((d as Profile[]) || []);
+    } catch (error) {
+      console.error('Error in fetchData:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchData(); }, [profile?.company_id]);
+  useEffect(() => { 
+    if (profile?.company_id) {
+      setLoading(true);
+      fetchData(); 
+    }
+  }, [profile?.company_id]);
 
   const resetForm = () => {
     setReg('');
@@ -70,16 +85,23 @@ export default function ManageVehicles() {
 
   const handleAdd = async () => {
     if (!reg.trim()) { toast({ title: 'Registration required', variant: 'destructive' }); return; }
+    if (!profile?.company_id) { toast({ title: 'Session error - please refresh', variant: 'destructive' }); return; }
     setSaving(true);
     const { error } = await supabase.from('vehicles').insert({
       registration: reg.trim().toUpperCase(),
       make: make.trim() || null,
       model: model.trim() || null,
       assigned_driver_id: driverId || null,
-      company_id: profile?.company_id,
+      company_id: profile.company_id,
     });
-    if (error) toast({ title: 'Failed', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Vehicle added' }); handleCloseDialog(); fetchData(); }
+    if (error) {
+      console.error('Error adding vehicle:', error);
+      toast({ title: 'Failed to add vehicle', description: error.message, variant: 'destructive' });
+    } else { 
+      toast({ title: 'Vehicle added' }); 
+      handleCloseDialog(); 
+      fetchData(); 
+    }
     setSaving(false);
   };
 
