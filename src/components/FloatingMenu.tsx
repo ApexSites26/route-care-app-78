@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Home, FileText, Car, Wrench, ClipboardCheck } from 'lucide-react';
+import { Menu, X, LogOut, ClipboardCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -13,9 +13,10 @@ interface FloatingMenuProps {
   items: MenuItem[];
   role: 'driver' | 'escort';
   vehicleId?: string;
+  onLogout: () => void;
 }
 
-export function FloatingMenu({ items, role, vehicleId }: FloatingMenuProps) {
+export function FloatingMenu({ items, role, vehicleId, onLogout }: FloatingMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
@@ -31,10 +32,10 @@ export function FloatingMenu({ items, role, vehicleId }: FloatingMenuProps) {
         />
       )}
 
-      {/* Menu Items */}
+      {/* Menu Items - positioned from top */}
       <div className={cn(
-        "fixed bottom-24 right-4 z-50 flex flex-col gap-2 transition-all duration-300",
-        isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        "fixed top-16 right-4 z-50 flex flex-col gap-2 transition-all duration-300",
+        isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
       )}>
         {items.map((item, index) => {
           const isActive = location.pathname === item.to;
@@ -70,20 +71,32 @@ export function FloatingMenu({ items, role, vehicleId }: FloatingMenuProps) {
             <span className="font-medium text-sm whitespace-nowrap">Inspection</span>
           </Link>
         )}
+
+        {/* Logout Button */}
+        <button
+          onClick={() => {
+            handleClose();
+            onLogout();
+          }}
+          className="flex items-center gap-3 px-4 py-3 rounded-full shadow-lg transition-all duration-200 bg-destructive text-destructive-foreground border border-destructive hover:bg-destructive/90"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium text-sm whitespace-nowrap">Logout</span>
+        </button>
       </div>
 
-      {/* FAB Button */}
+      {/* Menu Button - in header area */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full shadow-lg",
+          "w-10 h-10 rounded-lg",
           "flex items-center justify-center transition-all duration-300",
-          "bg-primary text-primary-foreground hover:bg-primary/90",
-          isOpen && "rotate-45"
+          "text-muted-foreground hover:text-foreground hover:bg-muted",
+          isOpen && "bg-muted text-foreground"
         )}
         aria-label={isOpen ? "Close menu" : "Open menu"}
       >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
     </>
   );
