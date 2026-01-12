@@ -41,8 +41,8 @@ export default function EscortForm() {
   // Form state
   const [morningStart, setMorningStart] = useState('');
   const [morningFinish, setMorningFinish] = useState('');
-  const [afternoonStart, setAfternoonStart] = useState('');
-  const [afternoonFinish, setAfternoonFinish] = useState('');
+  const [afternoonStart, setAfternoonStart] = useState('13:00');
+  const [afternoonFinish, setAfternoonFinish] = useState('16:00');
   const [noIssues, setNoIssues] = useState(true);
   const [issuesText, setIssuesText] = useState('');
 
