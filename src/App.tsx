@@ -27,6 +27,7 @@ import WorkshopRecords from "./pages/manager/WorkshopRecords";
 import VehicleDefects from "./pages/manager/VehicleDefects";
 import VehicleDiary from "./pages/manager/VehicleDiary";
 import VehicleDriverHistory from "./pages/manager/VehicleDriverHistory";
+import VehicleInspection from "./pages/VehicleInspection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/register" element={<RegisterCompany />} />
+              <Route path="/inspect" element={<VehicleInspection />} />
               
               {/* Driver Routes */}
               <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver']}><DriverDashboard /></ProtectedRoute>} />
