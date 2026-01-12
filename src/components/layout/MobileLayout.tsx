@@ -67,31 +67,32 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
               )}
             </div>
           </div>
-          <button
-            onClick={signOut}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Sign out"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          {/* Floating Menu for Driver/Escort in header */}
+          {showFloatingMenu ? (
+            <FloatingMenu 
+              items={navItems} 
+              role={profile?.role as 'driver' | 'escort'} 
+              vehicleId={vehicleId}
+              onLogout={signOut}
+            />
+          ) : (
+            <button
+              onClick={signOut}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className={cn("flex-1 overflow-auto", profile?.role === 'manager' ? "pb-20" : "pb-4")}>
         <div className="max-w-lg mx-auto p-4">
           {children}
         </div>
       </main>
-
-      {/* Floating Menu for Driver/Escort */}
-      {showFloatingMenu && (
-        <FloatingMenu 
-          items={navItems} 
-          role={profile?.role as 'driver' | 'escort'} 
-          vehicleId={vehicleId}
-        />
-      )}
 
       {/* Bottom Navigation - Only for Manager */}
       {profile?.role === 'manager' && (
