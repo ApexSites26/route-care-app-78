@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { format, subMonths } from 'date-fns';
 import { 
   Loader2, Car, User, Wrench, AlertTriangle, Building2, 
-  Calendar, Download, Eye, CheckCircle2, Clock, Filter 
+  Calendar, Download, Eye, CheckCircle2, Clock, Filter, Link, Copy, ExternalLink
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,9 @@ export default function VehicleDiary() {
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [inspectionMode, setInspectionMode] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [inspectionLinkDialogOpen, setInspectionLinkDialogOpen] = useState(false);
+  const [inspectionLink, setInspectionLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   useEffect(() => {
     async function fetchVehicles() {
@@ -254,6 +257,54 @@ export default function VehicleDiary() {
     setExportDialogOpen(false);
   };
 
+  const generateInspectionLink = async () => {
+    if (!selectedVehicle || !profile?.company_id) return;
+    
+    setGeneratingLink(true);
+    
+    try {
+      // Check for existing active link
+      const { data: existing } = await supabase
+        .from('vehicle_inspection_links')
+        .select('access_token')
+        .eq('vehicle_id', selectedVehicle)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (existing) {
+        const link = `${window.location.origin}/inspect?token=${existing.access_token}`;
+        setInspectionLink(link);
+      } else {
+        // Create new link
+        const { data: newLink, error } = await supabase
+          .from('vehicle_inspection_links')
+          .insert({
+            vehicle_id: selectedVehicle,
+            company_id: profile.company_id,
+          })
+          .select('access_token')
+          .single();
+        
+        if (error) throw error;
+        
+        const link = `${window.location.origin}/inspect?token=${newLink.access_token}`;
+        setInspectionLink(link);
+      }
+      
+      setInspectionLinkDialogOpen(true);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+    
+    setGeneratingLink(false);
+  };
+
+  const copyInspectionLink = () => {
+    if (!inspectionLink) return;
+    navigator.clipboard.writeText(inspectionLink);
+    toast({ title: 'Copied!', description: 'Inspection link copied to clipboard.' });
+  };
+
   const selectedVehicleData = vehicles.find(v => v.id === selectedVehicle);
   
   // Compliance check
@@ -317,15 +368,23 @@ export default function VehicleDiary() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 variant={inspectionMode ? "default" : "outline"} 
                 size="sm" 
                 onClick={() => setInspectionMode(!inspectionMode)}
-                className="flex-1"
               >
                 <Eye className="w-4 h-4 mr-1" />
-                {inspectionMode ? 'Exit Inspection' : 'Inspection Mode'}
+                {inspectionMode ? 'Exit' : 'Preview'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={generateInspectionLink}
+                disabled={generatingLink}
+              >
+                {generatingLink ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Link className="w-4 h-4 mr-1" />}
+                Share Link
               </Button>
               <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)}>
                 <Download className="w-4 h-4 mr-1" />
@@ -426,6 +485,50 @@ export default function VehicleDiary() {
                   PDF
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Inspection Link Dialog */}
+        <Dialog open={inspectionLinkDialogOpen} onOpenChange={setInspectionLinkDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Link className="w-5 h-5 text-primary" />
+                Inspection Link
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Share this link with licensing officers or police for read-only access to the vehicle diary.
+                No login required.
+              </p>
+              
+              <div className="flex gap-2">
+                <Input 
+                  value={inspectionLink || ''} 
+                  readOnly 
+                  className="flex-1 text-xs"
+                />
+                <Button onClick={copyInspectionLink} variant="outline" size="icon">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => window.open(inspectionLink || '', '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Open Link
+                </Button>
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                This link works offline once cached and shows the last 12 months of records.
+              </p>
             </div>
           </DialogContent>
         </Dialog>

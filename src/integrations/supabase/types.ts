@@ -629,6 +629,51 @@ export type Database = {
           },
         ]
       }
+      vehicle_inspection_links: {
+        Row: {
+          access_token: string
+          company_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          vehicle_id: string
+        }
+        Insert: {
+          access_token?: string
+          company_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          vehicle_id: string
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_inspection_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_inspection_links_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_maintenance: {
         Row: {
           company_id: string | null
@@ -801,6 +846,21 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_vehicle_diary_for_inspection: {
+        Args: { p_date_from?: string; p_date_to?: string; p_token: string }
+        Returns: Json
+      }
+      get_vehicle_for_inspection: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          company_name: string
+          make: string
+          model: string
+          registration: string
+          vehicle_id: string
+        }[]
       }
       has_role: {
         Args: {
