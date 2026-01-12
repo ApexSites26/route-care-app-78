@@ -53,6 +53,7 @@ export default function ViewEntries() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [driverEntries, setDriverEntries] = useState<any[]>([]);
   const [escortEntries, setEscortEntries] = useState<any[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Map<string, { contracted_hours: number }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(0);
@@ -87,20 +88,21 @@ export default function ViewEntries() {
     const escortUserIds = [...new Set(escortData?.map(e => e.user_id) || [])];
     const vehicleIds = [...new Set(driverData?.map(d => d.vehicle_id).filter(Boolean) || [])];
 
-    const [{ data: driverProfiles }, { data: escortProfiles }, { data: vehicles }] = await Promise.all([
-      driverUserIds.length > 0 
-        ? supabase.from('profiles').select('user_id, full_name').in('user_id', driverUserIds)
-        : Promise.resolve({ data: [] }),
-      escortUserIds.length > 0 
-        ? supabase.from('profiles').select('user_id, full_name').in('user_id', escortUserIds)
+    const allUserIds = [...new Set([...driverUserIds, ...escortUserIds])];
+    
+    const [{ data: allProfiles }, { data: vehicles }] = await Promise.all([
+      allUserIds.length > 0 
+        ? supabase.from('profiles').select('user_id, full_name, contracted_hours').in('user_id', allUserIds)
         : Promise.resolve({ data: [] }),
       vehicleIds.length > 0 
         ? supabase.from('vehicles').select('id, registration').in('id', vehicleIds)
         : Promise.resolve({ data: [] }),
     ]);
 
-    const profileMap = new Map((driverProfiles || []).concat(escortProfiles || []).map(p => [p.user_id, p.full_name]));
+    const profileMap = new Map((allProfiles || []).map(p => [p.user_id, p.full_name]));
     const vehicleMap = new Map((vehicles || []).map(v => [v.id, v.registration]));
+    const contractedMap = new Map((allProfiles || []).map(p => [p.user_id, { contracted_hours: p.contracted_hours || 40 }]));
+    setProfilesMap(contractedMap);
 
     const enrichedDriverEntries = (driverData || []).map(e => {
       const morningHours = calculateHours(e.morning_start_time, e.morning_finish_time);
@@ -377,11 +379,25 @@ export default function ViewEntries() {
                     <div className="space-y-2">
                       {uniqueDrivers.map(d => {
                         const userEntries = driverEntries.filter(e => e.user_id === d.user_id);
+                        const weeklyHours = driverWeeklyTotals[d.user_id] || 0;
+                        const contracted = profilesMap.get(d.user_id)?.contracted_hours || 40;
+                        const overtime = Math.max(0, weeklyHours - contracted);
                         return (
                           <div key={d.user_id} className="touch-card">
                             <div className="flex justify-between items-center mb-2">
-                              <p className="font-medium">{d.name}</p>
-                              <span className="text-primary font-semibold">{formatHours(driverWeeklyTotals[d.user_id] || 0)}</span>
+                              <div>
+                                <p className="font-medium">{d.name}</p>
+                                <div className="flex gap-2 text-xs mt-1">
+                                  <span className="text-muted-foreground">Contracted: {contracted}h</span>
+                                  <span className={cn(
+                                    "font-semibold",
+                                    overtime > 0 ? "text-warning" : "text-muted-foreground"
+                                  )}>
+                                    OT: {overtime > 0 ? formatHours(overtime) : '0'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-primary font-semibold">{formatHours(weeklyHours)}</span>
                             </div>
                             <div className="flex gap-1 text-xs">
                               {DAYS.map((day, i) => {
@@ -411,11 +427,25 @@ export default function ViewEntries() {
                     <div className="space-y-2">
                       {uniqueEscorts.map(e => {
                         const userEntries = escortEntries.filter(entry => entry.user_id === e.user_id);
+                        const weeklyHours = escortWeeklyTotals[e.user_id] || 0;
+                        const contracted = profilesMap.get(e.user_id)?.contracted_hours || 40;
+                        const overtime = Math.max(0, weeklyHours - contracted);
                         return (
                           <div key={e.user_id} className="touch-card">
                             <div className="flex justify-between items-center mb-2">
-                              <p className="font-medium">{e.name}</p>
-                              <span className="text-primary font-semibold">{formatHours(escortWeeklyTotals[e.user_id] || 0)}</span>
+                              <div>
+                                <p className="font-medium">{e.name}</p>
+                                <div className="flex gap-2 text-xs mt-1">
+                                  <span className="text-muted-foreground">Contracted: {contracted}h</span>
+                                  <span className={cn(
+                                    "font-semibold",
+                                    overtime > 0 ? "text-warning" : "text-muted-foreground"
+                                  )}>
+                                    OT: {overtime > 0 ? formatHours(overtime) : '0'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-primary font-semibold">{formatHours(weeklyHours)}</span>
                             </div>
                             <div className="flex gap-1 text-xs">
                               {DAYS.map((day, i) => {

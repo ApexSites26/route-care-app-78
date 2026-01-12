@@ -121,22 +121,32 @@ export default function ManageSchoolRuns() {
     if (editingRun) {
       const { error } = await supabase.from('school_runs').update(runData).eq('id', editingRun.id);
       if (error) {
+        console.error('Failed to update school run:', error);
         toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Run updated' });
         setDialogOpen(false);
+        resetForm();
         fetchData();
       }
     } else {
+      if (!profile?.company_id) {
+        toast({ title: 'Error', description: 'Company not found. Please log out and back in.', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
+      
       const { error } = await supabase.from('school_runs').insert({
         ...runData,
-        company_id: profile?.company_id,
+        company_id: profile.company_id,
       });
       if (error) {
+        console.error('Failed to create school run:', error);
         toast({ title: 'Failed to create', description: error.message, variant: 'destructive' });
       } else {
         toast({ title: 'Run created' });
         setDialogOpen(false);
+        resetForm();
         fetchData();
       }
     }
