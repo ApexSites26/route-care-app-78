@@ -13,6 +13,7 @@ import RegisterCompany from "./pages/RegisterCompany";
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverForm from "./pages/driver/DriverForm";
 import GarageVisitForm from "./pages/driver/GarageVisitForm";
+import DriverInspection from "./pages/driver/DriverInspection";
 import EscortDashboard from "./pages/escort/EscortDashboard";
 import EscortForm from "./pages/escort/EscortForm";
 import ManagerOverview from "./pages/manager/ManagerOverview";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver']}><DriverDashboard /></ProtectedRoute>} />
               <Route path="/driver/form" element={<ProtectedRoute allowedRoles={['driver']}><DriverForm /></ProtectedRoute>} />
               <Route path="/driver/garage-visit" element={<ProtectedRoute allowedRoles={['driver']}><GarageVisitForm /></ProtectedRoute>} />
+              <Route path="/driver/inspection" element={<ProtectedRoute allowedRoles={['driver']}><DriverInspection /></ProtectedRoute>} />
               
               {/* Escort Routes */}
               <Route path="/escort" element={<ProtectedRoute allowedRoles={['escort']}><EscortDashboard /></ProtectedRoute>} />
