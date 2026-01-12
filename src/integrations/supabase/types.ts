@@ -258,6 +258,67 @@ export type Database = {
           },
         ]
       }
+      garage_visits: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          driver_id: string
+          id: string
+          mileage: number | null
+          notes: string | null
+          reason_type: string
+          submitted_by: string
+          vehicle_id: string
+          visit_date: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          driver_id: string
+          id?: string
+          mileage?: number | null
+          notes?: string | null
+          reason_type: string
+          submitted_by: string
+          vehicle_id: string
+          visit_date?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          driver_id?: string
+          id?: string
+          mileage?: number | null
+          notes?: string | null
+          reason_type?: string
+          submitted_by?: string
+          vehicle_id?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_visits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_visits_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_visits_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_id: string | null
@@ -435,6 +496,139 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_defects: {
+        Row: {
+          action_taken: string | null
+          company_id: string | null
+          created_at: string
+          date_corrected: string | null
+          date_identified: string
+          defect_description: string
+          driver_entry_id: string | null
+          id: string
+          is_resolved: boolean
+          reported_by: string
+          resolved_by: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          company_id?: string | null
+          created_at?: string
+          date_corrected?: string | null
+          date_identified?: string
+          defect_description: string
+          driver_entry_id?: string | null
+          id?: string
+          is_resolved?: boolean
+          reported_by: string
+          resolved_by?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          company_id?: string | null
+          created_at?: string
+          date_corrected?: string | null
+          date_identified?: string
+          defect_description?: string
+          driver_entry_id?: string | null
+          id?: string
+          is_resolved?: boolean
+          reported_by?: string
+          resolved_by?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_defects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_defects_driver_entry_id_fkey"
+            columns: ["driver_entry_id"]
+            isOneToOne: false
+            referencedRelation: "driver_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_defects_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_defects_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_defects_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_driver_history: {
+        Row: {
+          assigned_at: string
+          company_id: string | null
+          created_at: string
+          driver_id: string
+          id: string
+          unassigned_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          company_id?: string | null
+          created_at?: string
+          driver_id: string
+          id?: string
+          unassigned_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          assigned_at?: string
+          company_id?: string | null
+          created_at?: string
+          driver_id?: string
+          id?: string
+          unassigned_at?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_driver_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_driver_history_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_driver_history_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_maintenance: {
         Row: {
           company_id: string | null
@@ -533,6 +727,57 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workshop_records: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          date_left: string
+          date_returned: string | null
+          garage_name: string
+          id: string
+          submitted_by: string
+          vehicle_id: string
+          work_carried_out: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          date_left: string
+          date_returned?: string | null
+          garage_name: string
+          id?: string
+          submitted_by: string
+          vehicle_id: string
+          work_carried_out: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          date_left?: string
+          date_returned?: string | null
+          garage_name?: string
+          id?: string
+          submitted_by?: string
+          vehicle_id?: string
+          work_carried_out?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workshop_records_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
