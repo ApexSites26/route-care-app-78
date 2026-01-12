@@ -62,13 +62,19 @@ export default function ManageSchoolRuns() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
+    if (!profile?.company_id) return;
+    
     setLoading(true);
     
-    const [{ data: runsData }, { data: profilesData }, { data: allocData }] = await Promise.all([
-      supabase.from('school_runs').select('*').order('run_code'),
-      supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-      supabase.from('run_allocations').select('*'),
+    const [{ data: runsData, error: runsError }, { data: profilesData }, { data: allocData }] = await Promise.all([
+      supabase.from('school_runs').select('*').eq('company_id', profile.company_id).order('run_code'),
+      supabase.from('profiles').select('id, full_name, role').eq('company_id', profile.company_id).eq('is_active', true),
+      supabase.from('run_allocations').select('*').eq('company_id', profile.company_id),
     ]);
+
+    if (runsError) {
+      console.error('Error fetching school runs:', runsError);
+    }
 
     setRuns(runsData || []);
     setDrivers((profilesData || []).filter(p => p.role === 'driver'));
@@ -77,7 +83,7 @@ export default function ManageSchoolRuns() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (profile?.company_id) fetchData(); }, [profile?.company_id]);
 
   const resetForm = () => {
     setRunCode('');
