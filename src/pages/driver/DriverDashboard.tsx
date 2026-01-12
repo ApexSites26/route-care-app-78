@@ -66,7 +66,7 @@ export default function DriverDashboard() {
   const fullyComplete = morningComplete && afternoonComplete;
 
   return (
-    <MobileLayout title="Driver Dashboard">
+    <MobileLayout title="Driver Dashboard" vehicleId={vehicle?.id}>
       <div className="space-y-6 animate-fade-in">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
