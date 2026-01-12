@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Car, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { Car, CheckCircle2, Clock, Calendar, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -137,14 +137,22 @@ export default function DriverDashboard() {
           {loading ? (
             <div className="py-4 text-center text-muted-foreground">Loading...</div>
           ) : vehicle ? (
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-              <p className="text-2xl font-bold text-primary tracking-wider">{vehicle.registration}</p>
-              {(vehicle.make || vehicle.model) && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {[vehicle.make, vehicle.model].filter(Boolean).join(' ')}
-                </p>
-              )}
-            </div>
+            <>
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-2xl font-bold text-primary tracking-wider">{vehicle.registration}</p>
+                {(vehicle.make || vehicle.model) && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {[vehicle.make, vehicle.model].filter(Boolean).join(' ')}
+                  </p>
+                )}
+              </div>
+              <Link to="/driver/garage-visit">
+                <Button variant="outline" className="w-full mt-3">
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Log Garage Visit
+                </Button>
+              </Link>
+            </>
           ) : (
             <p className="text-muted-foreground py-4 text-center">No vehicle assigned. Contact your manager.</p>
           )}
