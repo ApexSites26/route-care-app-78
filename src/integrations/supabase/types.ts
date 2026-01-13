@@ -362,6 +362,7 @@ export type Database = {
           company_id: string | null
           contracted_hours: number | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
           is_active: boolean
@@ -373,6 +374,7 @@ export type Database = {
           company_id?: string | null
           contracted_hours?: number | null
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
           is_active?: boolean
@@ -384,6 +386,7 @@ export type Database = {
           company_id?: string | null
           contracted_hours?: number | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
@@ -870,16 +873,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_staff_to_company: {
-        Args: {
-          _company_id: string
-          _contracted_hours?: number
-          _full_name: string
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: undefined
-      }
+      add_staff_to_company:
+        | {
+            Args: {
+              _company_id: string
+              _contracted_hours?: number
+              _full_name: string
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _company_id: string
+              _contracted_hours?: number
+              _email?: string
+              _full_name: string
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: undefined
+          }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }

@@ -12,6 +12,7 @@ interface StaffMember {
   id: string;
   user_id: string;
   full_name: string;
+  email: string | null;
   role: string;
 }
 
@@ -28,6 +29,24 @@ interface Company {
   name: string;
 }
 
+async function sendEmail(to: string, subject: string, html: string, text: string) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({
+      from: "School Taxi <onboarding@resend.dev>",
+      to: [to],
+      subject,
+      html,
+      text,
+    }),
+  });
+  return response.json();
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,6 +58,11 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const today = new Date().toISOString().split("T")[0];
+    const todayFormatted = new Date().toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
     
     // Get all companies with reminder notifications enabled
     const { data: settings, error: settingsError } = await supabase
@@ -58,16 +82,21 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const results: Array<{ company: string; emailsSent: number; missingStaff: string[] }> = [];
+    const results: Array<{ 
+      company: string; 
+      managerEmailSent: boolean;
+      staffEmailsSent: number;
+      missingStaff: string[];
+    }> = [];
 
     for (const setting of settings as (NotificationSettings & { companies: Company })[]) {
       const companyId = setting.company_id;
       const companyName = setting.companies?.name || "Your Company";
 
-      // Get all active staff (drivers and escorts)
+      // Get all active staff (drivers and escorts) with their emails
       const { data: staff, error: staffError } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, role")
+        .select("id, user_id, full_name, email, role")
         .eq("company_id", companyId)
         .eq("is_active", true)
         .in("role", ["driver", "escort"]);
@@ -109,52 +138,79 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (missingStaff.length === 0) {
-        results.push({ company: companyName, emailsSent: 0, missingStaff: [] });
+        results.push({ 
+          company: companyName, 
+          managerEmailSent: false,
+          staffEmailsSent: 0, 
+          missingStaff: [] 
+        });
         continue;
       }
 
-      // Format missing staff list for email
-      const missingList = missingStaff
-        .map((s) => `• ${s.full_name} (${s.role})`)
-        .join("\n");
+      // Send reminder emails to each staff member who has an email
+      let staffEmailsSent = 0;
+      for (const member of missingStaff) {
+        if (member.email) {
+          const staffEmailResult = await sendEmail(
+            member.email,
+            `Reminder: Submit your daily form for ${todayFormatted}`,
+            `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1e40af;">Daily Form Reminder</h2>
+                <p>Hi ${member.full_name.split(" ")[0]},</p>
+                <p>This is a friendly reminder that you haven't submitted your daily form yet for <strong>${todayFormatted}</strong>.</p>
+                <p style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                  Please log in to the School Taxi app and complete your daily form as soon as possible.
+                </p>
+                <p style="color: #64748b; font-size: 14px; margin-top: 24px;">
+                  This is an automated reminder from ${companyName}.
+                </p>
+              </div>
+            `,
+            `Hi ${member.full_name.split(" ")[0]},\n\nThis is a friendly reminder that you haven't submitted your daily form yet for ${todayFormatted}.\n\nPlease log in to the School Taxi app and complete your daily form as soon as possible.\n\nThis is an automated reminder from ${companyName}.`
+          );
+          console.log(`Reminder email sent to ${member.email}:`, staffEmailResult);
+          staffEmailsSent++;
+        }
+      }
 
+      // Format missing staff list for manager email
       const missingListHtml = missingStaff
-        .map((s) => `<li>${s.full_name} <span style="color: #666;">(${s.role})</span></li>`)
+        .map((s) => `<li>${s.full_name} <span style="color: #666;">(${s.role})</span>${s.email ? ' ✉️' : ' <span style="color: #ef4444;">no email</span>'}</li>`)
         .join("");
 
-      // Send email to manager using fetch to Resend API
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: "School Taxi <onboarding@resend.dev>",
-          to: [setting.manager_email],
-          subject: `[${companyName}] ${missingStaff.length} staff member(s) haven't submitted today`,
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #1e40af;">Daily Submission Reminder</h2>
-              <p>The following staff members haven't submitted their daily form yet:</p>
-              <ul style="background: #f8fafc; padding: 16px 16px 16px 32px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                ${missingListHtml}
-              </ul>
-              <p style="color: #64748b; font-size: 14px; margin-top: 24px;">
-                This is an automated reminder from your School Taxi Timesheet system.
-              </p>
-            </div>
-          `,
-          text: `Daily Submission Reminder\n\nThe following staff members haven't submitted their daily form yet:\n\n${missingList}\n\nThis is an automated reminder from your School Taxi Timesheet system.`,
-        }),
-      });
+      const missingList = missingStaff
+        .map((s) => `• ${s.full_name} (${s.role})${s.email ? '' : ' - no email'}`)
+        .join("\n");
 
-      const emailResult = await emailResponse.json();
-      console.log(`Email sent to ${setting.manager_email} for company ${companyName}:`, emailResult);
+      // Send summary email to manager
+      const managerEmailResult = await sendEmail(
+        setting.manager_email,
+        `[${companyName}] ${missingStaff.length} staff member(s) haven't submitted today`,
+        `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1e40af;">Daily Submission Report</h2>
+            <p>The following staff members haven't submitted their daily form yet:</p>
+            <ul style="background: #f8fafc; padding: 16px 16px 16px 32px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              ${missingListHtml}
+            </ul>
+            <p style="margin-top: 16px;">
+              <strong>${staffEmailsSent}</strong> staff member(s) were sent reminder emails directly.
+              ${missingStaff.length - staffEmailsSent > 0 ? `<br><span style="color: #ef4444;">${missingStaff.length - staffEmailsSent} staff member(s) don't have email addresses on file.</span>` : ''}
+            </p>
+            <p style="color: #64748b; font-size: 14px; margin-top: 24px;">
+              This is an automated reminder from your School Taxi Timesheet system.
+            </p>
+          </div>
+        `,
+        `Daily Submission Report\n\nThe following staff members haven't submitted their daily form yet:\n\n${missingList}\n\n${staffEmailsSent} staff member(s) were sent reminder emails directly.\n\nThis is an automated reminder from your School Taxi Timesheet system.`
+      );
+      console.log(`Manager email sent to ${setting.manager_email}:`, managerEmailResult);
 
       results.push({
         company: companyName,
-        emailsSent: 1,
+        managerEmailSent: true,
+        staffEmailsSent,
         missingStaff: missingStaff.map((s) => s.full_name),
       });
     }
