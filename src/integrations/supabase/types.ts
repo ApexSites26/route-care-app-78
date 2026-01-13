@@ -319,6 +319,44 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          manager_email: string
+          reminder_enabled: boolean
+          reminder_time: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          manager_email: string
+          reminder_enabled?: boolean
+          reminder_time?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          manager_email?: string
+          reminder_enabled?: boolean
+          reminder_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_id: string | null

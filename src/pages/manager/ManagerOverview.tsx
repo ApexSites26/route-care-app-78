@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  FileText
+  FileText,
+  Bell
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -144,6 +145,7 @@ export default function ManagerOverview() {
     { to: '/manager/runs', icon: Route, label: 'Routes', description: 'Routes and allocations' },
     { to: '/manager/garage', icon: Wrench, label: 'Garage Work', description: 'Maintenance alerts' },
     { to: '/manager/entries', icon: ClipboardList, label: 'View Entries', description: 'Timesheets and checklists' },
+    { to: '/manager/notifications', icon: Bell, label: 'Notifications', description: 'Email reminders' },
     { to: '/manager/branding', icon: Palette, label: 'Company Settings', description: 'Logo and colour scheme' },
     { to: '/manager/audit', icon: FileText, label: 'Audit Logs', description: 'Compliance records' },
   ];
