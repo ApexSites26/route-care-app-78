@@ -140,9 +140,21 @@
 }
 
 @layer components {
-  /* Touch-friendly card */
+  /* Touch-friendly card - responsive padding */
   .touch-card {
     @apply bg-card rounded-xl shadow-md p-4 border border-border/50;
+  }
+  
+  @screen md {
+    .touch-card {
+      @apply p-5;
+    }
+  }
+  
+  @screen lg {
+    .touch-card {
+      @apply p-6;
+    }
   }
 
   /* Status badge styles */
@@ -158,20 +170,20 @@
     @apply bg-destructive/10 text-destructive border-destructive/20;
   }
 
-  /* Mobile bottom nav */
+  /* Mobile bottom nav - hide on desktop */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg;
+    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg md:hidden;
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Form section card */
+  /* Form section card - responsive */
   .form-section {
-    @apply bg-card rounded-xl border border-border p-4 space-y-4;
+    @apply bg-card rounded-xl border border-border p-4 space-y-4 md:p-6;
   }
 
   /* Check item for vehicle checklist */
   .check-item {
-    @apply flex items-center justify-between p-3 rounded-lg border border-border bg-background/50 transition-colors;
+    @apply flex items-center justify-between p-3 rounded-lg border border-border bg-background/50 transition-colors md:p-4;
   }
 
   .check-item-pass {
@@ -180,6 +192,35 @@
 
   .check-item-fail {
     @apply bg-destructive/5 border-destructive/30;
+  }
+
+  /* Desktop content wrapper for wider layouts */
+  .desktop-content-wide {
+    @apply max-w-lg mx-auto md:max-w-4xl lg:max-w-6xl;
+  }
+
+  /* Desktop card grid - responsive columns */
+  .desktop-grid-2 {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4;
+  }
+  
+  .desktop-grid-3 {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4;
+  }
+
+  .desktop-grid-4 {
+    @apply grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4;
+  }
+
+  /* Desktop table card - for data-heavy views */
+  .desktop-table-card {
+    @apply touch-card overflow-x-auto;
+  }
+
+  @screen md {
+    .desktop-table-card {
+      @apply rounded-2xl;
+    }
   }
 }
 

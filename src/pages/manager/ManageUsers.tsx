@@ -265,7 +265,7 @@ export default function ManageUsers() {
   return (
     <MobileLayout title="Manage Staff">
       <div className="space-y-4 animate-fade-in">
-        <Button className="w-full h-12" onClick={() => handleOpenDialog()}>
+        <Button className="w-full h-12 md:w-auto md:h-10" onClick={() => handleOpenDialog()}>
           <Plus className="w-5 h-5 mr-2" />Add Staff Member
         </Button>
 
@@ -321,7 +321,7 @@ export default function ManageUsers() {
         ) : profiles.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No staff members yet</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {profiles.map((p) => {
               const worked = workedHours[p.id] || 0;
               const overtime = getOvertimeHours(p);

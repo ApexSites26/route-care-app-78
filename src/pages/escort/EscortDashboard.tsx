@@ -50,12 +50,12 @@ export default function EscortDashboard() {
 
   return (
     <MobileLayout title="Escort Dashboard">
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in md:max-w-xl md:mx-auto">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-2xl font-bold text-foreground md:text-3xl">
             Hello, {profile?.full_name?.split(' ')[0]}
           </h2>
-          <p className="text-muted-foreground">{today}</p>
+          <p className="text-muted-foreground md:text-lg">{today}</p>
         </div>
 
         {/* Today's Status */}

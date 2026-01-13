@@ -177,7 +177,7 @@ export default function ManageVehicles() {
         ) : vehicles.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No vehicles yet</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {vehicles.map(v => (
               <div key={v.id} className="touch-card flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
