@@ -266,10 +266,10 @@ export default function ManageSchoolRuns() {
   return (
     <MobileLayout title="School Runs">
       <div className="space-y-4 animate-fade-in">
-        <div className="flex gap-2">
+        <div className="flex gap-2 md:justify-start">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => handleOpenDialog()} className="flex-1">
+              <Button onClick={() => handleOpenDialog()} className="flex-1 md:flex-none md:px-6">
                 <Plus className="w-4 h-4 mr-2" /> Add Run
               </Button>
             </DialogTrigger>
@@ -315,7 +315,7 @@ export default function ManageSchoolRuns() {
         {runs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No school runs yet</p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {runs.map(run => (
               <div key={run.id} className="touch-card space-y-3">
                 <div className="flex justify-between items-start">

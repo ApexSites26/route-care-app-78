@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBranding } from '@/hooks/useBranding';
 import { cn } from '@/lib/utils';
 import { FloatingMenu } from '@/components/FloatingMenu';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { DesktopManagerLayout } from './DesktopManagerLayout';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -16,6 +18,7 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
   const { profile, signOut } = useAuth();
   const { branding } = useBranding();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const getNavItems = () => {
     if (!profile) return [];
@@ -47,21 +50,49 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
   const navItems = getNavItems();
   const showFloatingMenu = profile?.role === 'driver' || profile?.role === 'escort';
 
+  // For managers on desktop, use the enhanced desktop layout with sidebar
+  if (profile?.role === 'manager' && !isMobile) {
+    return (
+      <DesktopManagerLayout title={title}>
+        {children}
+      </DesktopManagerLayout>
+    );
+  }
+
+  // For drivers/escorts on desktop, enhance the layout but keep similar structure
+  const isDesktopDriverEscort = !isMobile && (profile?.role === 'driver' || profile?.role === 'escort');
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="bg-card border-b border-border px-4 py-3 safe-top sticky top-0 z-40">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
+      <header className={cn(
+        "bg-card border-b border-border px-4 py-3 safe-top sticky top-0 z-40",
+        isDesktopDriverEscort && "md:px-8"
+      )}>
+        <div className={cn(
+          "flex items-center justify-between max-w-lg mx-auto",
+          isDesktopDriverEscort && "md:max-w-3xl"
+        )}>
           <div className="flex items-center gap-3">
             {branding.logo_url && (
-              <img src={branding.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-lg bg-white p-0.5" />
+              <img 
+                src={branding.logo_url} 
+                alt="Logo" 
+                className={cn(
+                  "w-10 h-10 object-contain rounded-lg bg-white p-0.5",
+                  isDesktopDriverEscort && "md:w-12 md:h-12"
+                )} 
+              />
             )}
             <div>
-              <h1 className="text-lg font-semibold text-foreground">
+              <h1 className={cn(
+                "text-lg font-semibold text-foreground",
+                isDesktopDriverEscort && "md:text-xl"
+              )}>
                 {title || branding.company_name || 'School Taxi'}
               </h1>
               {profile && (
-                <p className="text-xs text-muted-foreground capitalize">
+                <p className="text-xs text-muted-foreground capitalize md:text-sm">
                   {profile.full_name} • {profile.role}
                 </p>
               )}
@@ -88,14 +119,21 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
       </header>
 
       {/* Main Content */}
-      <main className={cn("flex-1 overflow-auto", profile?.role === 'manager' ? "pb-20" : "pb-4")}>
-        <div className="max-w-lg mx-auto p-4">
+      <main className={cn(
+        "flex-1 overflow-auto", 
+        profile?.role === 'manager' ? "pb-20" : "pb-4",
+        isDesktopDriverEscort && "md:pb-8"
+      )}>
+        <div className={cn(
+          "max-w-lg mx-auto p-4",
+          isDesktopDriverEscort && "md:max-w-2xl md:p-6"
+        )}>
           {children}
         </div>
       </main>
 
-      {/* Bottom Navigation - Only for Manager */}
-      {profile?.role === 'manager' && (
+      {/* Bottom Navigation - Only for Manager on Mobile */}
+      {profile?.role === 'manager' && isMobile && (
         <nav className="bottom-nav">
           <div className="flex items-center justify-around max-w-lg mx-auto py-2">
             {navItems.map((item) => {

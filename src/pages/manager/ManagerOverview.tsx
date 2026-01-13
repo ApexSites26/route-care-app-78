@@ -158,29 +158,37 @@ export default function ManagerOverview() {
     <MobileLayout title="Manager Dashboard">
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-2xl font-bold text-foreground md:text-3xl">
             Hello, {profile?.full_name?.split(' ')[0]}
           </h2>
-          <p className="text-muted-foreground">{today}</p>
+          <p className="text-muted-foreground md:text-lg">{today}</p>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - 2 cols on mobile, 4 cols on desktop */}
         {!loading && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             <div className="touch-card text-center">
-              <p className="text-3xl font-bold text-primary">{stats.totalDrivers}</p>
-              <p className="text-sm text-muted-foreground">Drivers</p>
+              <p className="text-3xl font-bold text-primary md:text-4xl">{stats.totalDrivers}</p>
+              <p className="text-sm text-muted-foreground md:text-base">Drivers</p>
             </div>
             <div className="touch-card text-center">
-              <p className="text-3xl font-bold text-primary">{stats.totalEscorts}</p>
-              <p className="text-sm text-muted-foreground">Escorts</p>
+              <p className="text-3xl font-bold text-primary md:text-4xl">{stats.totalEscorts}</p>
+              <p className="text-sm text-muted-foreground md:text-base">Escorts</p>
+            </div>
+            <div className="touch-card text-center col-span-2 md:col-span-1">
+              <p className="text-3xl font-bold text-primary md:text-4xl">{stats.hoursThisWeek}h</p>
+              <p className="text-sm text-muted-foreground md:text-base">Hours This Week</p>
+            </div>
+            <div className="touch-card text-center col-span-2 md:col-span-1">
+              <p className="text-3xl font-bold text-primary md:text-4xl">{stats.issuesThisWeek}</p>
+              <p className="text-sm text-muted-foreground md:text-base">Issues Flagged</p>
             </div>
           </div>
         )}
 
-        {/* Status Cards */}
+        {/* Status Cards - stack on mobile, row on desktop */}
         {!loading && (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {/* Missing Entries */}
             <div className={cn(
               "touch-card border-2",
@@ -188,12 +196,12 @@ export default function ManagerOverview() {
             )}>
               <div className="flex items-center gap-3">
                 {stats.missingEntriesToday === 0 ? (
-                  <CheckCircle2 className="w-6 h-6" />
+                  <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" />
                 ) : (
-                  <Clock className="w-6 h-6" />
+                  <Clock className="w-6 h-6 md:w-7 md:h-7" />
                 )}
                 <div className="flex-1">
-                  <p className="font-semibold">
+                  <p className="font-semibold md:text-lg">
                     {stats.missingEntriesToday === 0 
                       ? 'All staff submitted today' 
                       : `${stats.missingEntriesToday} missing entries today`}
@@ -215,12 +223,12 @@ export default function ManagerOverview() {
             )}>
               <div className="flex items-center gap-3">
                 {stats.issuesThisWeek === 0 ? (
-                  <CheckCircle2 className="w-6 h-6" />
+                  <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" />
                 ) : (
-                  <AlertTriangle className="w-6 h-6" />
+                  <AlertTriangle className="w-6 h-6 md:w-7 md:h-7" />
                 )}
                 <div>
-                  <p className="font-semibold">
+                  <p className="font-semibold md:text-lg">
                     {stats.issuesThisWeek === 0 
                       ? 'No issues this week' 
                       : `${stats.issuesThisWeek} issues flagged this week`}
@@ -229,29 +237,29 @@ export default function ManagerOverview() {
               </div>
             </div>
 
-            {/* Hours This Week */}
-            <div className="touch-card border-2 border-primary/20 bg-primary/5">
+            {/* Hours This Week - hidden on mobile since shown above */}
+            <div className="touch-card border-2 border-primary/20 bg-primary/5 hidden lg:block">
               <div className="flex items-center gap-3">
-                <Clock className="w-6 h-6 text-primary" />
+                <Clock className="w-7 h-7 text-primary" />
                 <div>
-                  <p className="font-semibold text-primary">{stats.hoursThisWeek}h logged this week</p>
-                  <p className="text-sm text-muted-foreground">Total staff hours</p>
+                  <p className="font-semibold text-primary text-lg">{stats.hoursThisWeek}h logged</p>
+                  <p className="text-sm text-muted-foreground">Total staff hours this week</p>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Menu Items */}
-        <div className="space-y-3">
+        {/* Menu Items - 1 col on mobile, 2-3 on desktop */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
           {menuItems.map((item) => (
-            <Link key={item.to} to={item.to} className="block touch-card touch-highlight">
+            <Link key={item.to} to={item.to} className="block touch-card touch-highlight group">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <item.icon className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors md:w-14 md:h-14">
+                  <item.icon className="w-6 h-6 text-primary md:w-7 md:h-7" />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">{item.label}</p>
+                  <p className="font-semibold text-foreground md:text-lg">{item.label}</p>
                   <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               </div>
