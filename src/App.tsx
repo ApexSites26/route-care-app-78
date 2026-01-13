@@ -28,6 +28,7 @@ import WorkshopRecords from "./pages/manager/WorkshopRecords";
 import VehicleDefects from "./pages/manager/VehicleDefects";
 import VehicleDiary from "./pages/manager/VehicleDiary";
 import VehicleDriverHistory from "./pages/manager/VehicleDriverHistory";
+import NotificationSettings from "./pages/manager/NotificationSettings";
 import VehicleInspection from "./pages/VehicleInspection";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/manager/defects" element={<ProtectedRoute allowedRoles={['manager']}><VehicleDefects /></ProtectedRoute>} />
               <Route path="/manager/vehicle-diary" element={<ProtectedRoute allowedRoles={['manager']}><VehicleDiary /></ProtectedRoute>} />
               <Route path="/manager/driver-history" element={<ProtectedRoute allowedRoles={['manager']}><VehicleDriverHistory /></ProtectedRoute>} />
+              <Route path="/manager/notifications" element={<ProtectedRoute allowedRoles={['manager']}><NotificationSettings /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
