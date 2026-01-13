@@ -20,6 +20,7 @@ interface Profile {
   role: 'driver' | 'escort' | 'manager';
   is_active: boolean;
   contracted_hours: number | null;
+  contract_start_date: string | null;
 }
 
 interface WorkedHours {
@@ -40,6 +41,7 @@ export default function ManageUsers() {
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<'driver' | 'escort'>('driver');
   const [newContractedHours, setNewContractedHours] = useState('40');
+  const [newContractStartDate, setNewContractStartDate] = useState('');
   const { toast } = useToast();
 
   const fetchProfiles = async () => {
@@ -142,6 +144,7 @@ export default function ManageUsers() {
     setNewEmail('');
     setNewRole('driver');
     setNewContractedHours('40');
+    setNewContractStartDate(new Date().toISOString().split('T')[0]);
     setEditingProfile(null);
   };
 
@@ -152,6 +155,7 @@ export default function ManageUsers() {
       setNewEmail(p.email || '');
       setNewRole(p.role === 'manager' ? 'driver' : p.role);
       setNewContractedHours(String(p.contracted_hours ?? 40));
+      setNewContractStartDate(p.contract_start_date || new Date().toISOString().split('T')[0]);
     } else {
       resetForm();
     }
@@ -238,7 +242,8 @@ export default function ManageUsers() {
         full_name: newName.trim(), 
         role: newRole,
         contracted_hours: parseFloat(newContractedHours) || 40,
-        email: newEmail.trim() || null
+        email: newEmail.trim() || null,
+        contract_start_date: newContractStartDate || null
       })
       .eq('id', editingProfile.id);
 
@@ -312,6 +317,14 @@ export default function ManageUsers() {
                   placeholder="40"
                   min="0"
                   max="168"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Contract Start Date</Label>
+                <Input 
+                  type="date" 
+                  value={newContractStartDate} 
+                  onChange={(e) => setNewContractStartDate(e.target.value)} 
                 />
               </div>
               <Button onClick={editingProfile ? handleUpdateUser : handleAddUser} disabled={saving} className="w-full">

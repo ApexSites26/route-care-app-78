@@ -16,7 +16,7 @@ interface ProfileData {
   role: string;
   contracted_hours: number | null;
   company_name: string | null;
-  created_at: string;
+  contract_start_date: string | null;
 }
 
 export default function ProfileSettings() {
@@ -44,7 +44,7 @@ export default function ProfileSettings() {
           email,
           role,
           contracted_hours,
-          created_at,
+          contract_start_date,
           companies:company_id(name)
         `)
         .eq('id', profile.id)
@@ -61,7 +61,7 @@ export default function ProfileSettings() {
           role: data.role,
           contracted_hours: data.contracted_hours,
           company_name: companyData?.name || null,
-          created_at: data.created_at,
+          contract_start_date: data.contract_start_date,
         });
         setEditableEmail(data.email || user?.email || '');
       }
@@ -197,12 +197,12 @@ export default function ProfileSettings() {
               </div>
             </div>
 
-            {/* Member Since */}
+            {/* Contract Start Date */}
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm text-muted-foreground">Member Since</p>
-                <p className="font-medium text-foreground">{profileData?.created_at ? formatDate(profileData.created_at) : '-'}</p>
+                <p className="text-sm text-muted-foreground">Contract Start Date</p>
+                <p className="font-medium text-foreground">{profileData?.contract_start_date ? formatDate(profileData.contract_start_date) : '-'}</p>
               </div>
             </div>
           </div>
