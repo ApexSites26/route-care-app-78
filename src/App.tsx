@@ -29,6 +29,7 @@ import VehicleDefects from "./pages/manager/VehicleDefects";
 import VehicleDiary from "./pages/manager/VehicleDiary";
 import VehicleDriverHistory from "./pages/manager/VehicleDriverHistory";
 import NotificationSettings from "./pages/manager/NotificationSettings";
+import ProfileSettings from "./pages/shared/ProfileSettings";
 import VehicleInspection from "./pages/VehicleInspection";
 import NotFound from "./pages/NotFound";
 
@@ -54,10 +55,12 @@ const App = () => (
               <Route path="/driver/form" element={<ProtectedRoute allowedRoles={['driver']}><DriverForm /></ProtectedRoute>} />
               <Route path="/driver/garage-visit" element={<ProtectedRoute allowedRoles={['driver']}><GarageVisitForm /></ProtectedRoute>} />
               <Route path="/driver/inspection" element={<ProtectedRoute allowedRoles={['driver']}><DriverInspection /></ProtectedRoute>} />
+              <Route path="/driver/profile" element={<ProtectedRoute allowedRoles={['driver']}><ProfileSettings /></ProtectedRoute>} />
               
               {/* Escort Routes */}
               <Route path="/escort" element={<ProtectedRoute allowedRoles={['escort']}><EscortDashboard /></ProtectedRoute>} />
               <Route path="/escort/form" element={<ProtectedRoute allowedRoles={['escort']}><EscortForm /></ProtectedRoute>} />
+              <Route path="/escort/profile" element={<ProtectedRoute allowedRoles={['escort']}><ProfileSettings /></ProtectedRoute>} />
               
               {/* Manager Routes */}
               <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerOverview /></ProtectedRoute>} />

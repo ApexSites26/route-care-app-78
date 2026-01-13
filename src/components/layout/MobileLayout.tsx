@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Home, FileText, ClipboardList, LogOut, Route, Wrench } from 'lucide-react';
+import { Home, FileText, ClipboardList, LogOut, Route, Wrench, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBranding } from '@/hooks/useBranding';
 import { cn } from '@/lib/utils';
@@ -29,11 +29,13 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
           { to: '/driver', icon: Home, label: 'Home' },
           { to: '/driver/form', icon: FileText, label: 'Daily Form' },
           { to: '/driver/garage-visit', icon: Wrench, label: 'Garage Visit' },
+          { to: '/driver/profile', icon: Settings, label: 'My Profile' },
         ];
       case 'escort':
         return [
           { to: '/escort', icon: Home, label: 'Home' },
           { to: '/escort/form', icon: FileText, label: 'Daily Form' },
+          { to: '/escort/profile', icon: Settings, label: 'My Profile' },
         ];
       case 'manager':
         return [
