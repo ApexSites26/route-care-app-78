@@ -16,6 +16,7 @@ interface Profile {
   id: string;
   user_id: string;
   full_name: string;
+  email: string | null;
   role: 'driver' | 'escort' | 'manager';
   is_active: boolean;
   contracted_hours: number | null;
@@ -148,6 +149,7 @@ export default function ManageUsers() {
     if (p) {
       setEditingProfile(p);
       setNewName(p.full_name);
+      setNewEmail(p.email || '');
       setNewRole(p.role === 'manager' ? 'driver' : p.role);
       setNewContractedHours(String(p.contracted_hours ?? 40));
     } else {
@@ -209,7 +211,8 @@ export default function ManageUsers() {
       _company_id: profile.company_id,
       _full_name: trimmedName,
       _role: newRole,
-      _contracted_hours: parseFloat(newContractedHours) || 40
+      _contracted_hours: parseFloat(newContractedHours) || 40,
+      _email: trimmedEmail
     });
 
     if (assignError) {
@@ -234,7 +237,8 @@ export default function ManageUsers() {
       .update({ 
         full_name: newName.trim(), 
         role: newRole,
-        contracted_hours: parseFloat(newContractedHours) || 40
+        contracted_hours: parseFloat(newContractedHours) || 40,
+        email: newEmail.trim() || null
       })
       .eq('id', editingProfile.id);
 
@@ -282,12 +286,13 @@ export default function ManageUsers() {
                 <Label>Full Name</Label>
                 <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="John Smith" />
               </div>
-              {!editingProfile && (
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="john@example.com" />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="john@example.com" />
+                <p className="text-xs text-muted-foreground">
+                  {editingProfile ? 'Used for reminder notifications' : 'Used for login and reminder notifications'}
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={newRole} onValueChange={(v) => setNewRole(v as 'driver' | 'escort')}>
