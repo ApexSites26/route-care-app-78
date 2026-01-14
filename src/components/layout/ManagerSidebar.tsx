@@ -40,7 +40,7 @@ const managementItems = [
   { to: '/manager/users', icon: Users, label: 'Staff' },
   { to: '/manager/vehicles', icon: Car, label: 'Vehicles' },
   { to: '/manager/defects', icon: AlertTriangle, label: 'Defects' },
-  { to: '/manager/diary', icon: BookOpen, label: 'Vehicle Diary' },
+  { to: '/manager/vehicle-diary', icon: BookOpen, label: 'Vehicle Diary' },
 ];
 
 const settingsItems = [

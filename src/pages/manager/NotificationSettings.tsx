@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, Loader2, Mail, Clock, Send, AlertCircle } from 'lucide-react';
+import { Bell, Loader2, Mail, Clock, Send, AlertCircle, Copy, ExternalLink, Info } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface NotificationSettings {
@@ -156,13 +157,60 @@ export default function NotificationSettings() {
           <p className="text-muted-foreground">Get notified when staff haven't submitted their daily form</p>
         </div>
 
-        <Alert>
-          <AlertCircle className="w-4 h-4" />
-          <AlertDescription>
-            <strong>Scheduling:</strong> To automate daily checks, you'll need to set up an external cron job 
-            (e.g., using cron-job.org) to call this function at your preferred time.
-          </AlertDescription>
-        </Alert>
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <div className="touch-card cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Info className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Cron Job Setup Guide</p>
+                    <p className="text-sm text-muted-foreground">Click to view automation instructions</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="touch-card mt-2 space-y-4 bg-muted/30">
+              <p className="text-sm text-muted-foreground">
+                To automate daily reminder emails, set up a free cron job using <strong>cron-job.org</strong>:
+              </p>
+              
+              <ol className="text-sm space-y-3 list-decimal list-inside text-muted-foreground">
+                <li>Go to <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-primary underline">cron-job.org</a> and create a free account</li>
+                <li>Click "Create Cronjob"</li>
+                <li>
+                  <span>Set the URL to:</span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <code className="bg-background border border-border rounded px-2 py-1 text-xs break-all flex-1">
+                      {`https://oaknfplkgikvmwdsdqpa.supabase.co/functions/v1/check-submissions`}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://oaknfplkgikvmwdsdqpa.supabase.co/functions/v1/check-submissions`);
+                        toast({ title: 'Copied!', description: 'URL copied to clipboard' });
+                      }}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </li>
+                <li>Set schedule to match your preferred check time (e.g., every day at 2:00 PM)</li>
+                <li>Enable the cron job and save</li>
+              </ol>
+              
+              <p className="text-xs text-muted-foreground italic">
+                The cron job will check for missing submissions and send emails to both staff members and the manager email configured above.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="touch-card space-y-6">
           {/* Enable/Disable Toggle */}
