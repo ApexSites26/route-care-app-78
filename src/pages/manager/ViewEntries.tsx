@@ -5,7 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfWeek, endOfWeek, addDays, subWeeks, addWeeks } from 'date-fns';
-import { Loader2, Download, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Loader2, Download, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, FileSpreadsheet } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 const vehicleCheckLabels: Record<string, string> = {
@@ -167,47 +175,138 @@ export default function ViewEntries() {
   const uniqueDrivers = [...new Map(filteredDriverEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.driver_name }])).values()];
   const uniqueEscorts = [...new Map(filteredEscortEntries.map(e => [e.user_id, { user_id: e.user_id, name: e.escort_name }])).values()];
 
-  const exportCSV = () => {
+  const downloadFile = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export Timesheet for Payroll (simple format for Excel/Google Sheets)
+  const exportTimesheetPayroll = () => {
+    const headers = ['Staff Type', 'Name', 'Date', 'Morning Start', 'Morning Finish', 'Afternoon Start', 'Afternoon Finish', 'Daily Hours', 'Contracted Hours', 'Overtime'];
+    const rows = [
+      ...driverEntries.map(e => {
+        const contracted = profilesMap.get(e.user_id)?.contracted_hours || 40;
+        return [
+          'Driver',
+          e.driver_name,
+          e.entry_date,
+          e.morning_start_time?.slice(0, 5) || '',
+          e.morning_finish_time?.slice(0, 5) || '',
+          e.afternoon_start_time?.slice(0, 5) || '',
+          e.afternoon_finish_time?.slice(0, 5) || '',
+          e.daily_hours.toFixed(2),
+          contracted,
+          '',
+        ];
+      }),
+      ...escortEntries.map(e => {
+        const contracted = profilesMap.get(e.user_id)?.contracted_hours || 40;
+        return [
+          'Escort',
+          e.escort_name,
+          e.entry_date,
+          e.morning_start_time?.slice(0, 5) || '',
+          e.morning_finish_time?.slice(0, 5) || '',
+          e.afternoon_start_time?.slice(0, 5) || '',
+          e.afternoon_finish_time?.slice(0, 5) || '',
+          e.daily_hours.toFixed(2),
+          contracted,
+          '',
+        ];
+      }),
+    ];
+
+    // Add weekly summary rows
+    rows.push([]);
+    rows.push(['--- Weekly Summary ---']);
+    rows.push(['Staff Type', 'Name', '', '', '', '', '', 'Total Hours', 'Contracted', 'Overtime']);
+    
+    uniqueDrivers.forEach(d => {
+      const weeklyHours = driverWeeklyTotals[d.user_id] || 0;
+      const contracted = profilesMap.get(d.user_id)?.contracted_hours || 40;
+      const overtime = Math.max(0, weeklyHours - contracted);
+      rows.push(['Driver', d.name, '', '', '', '', '', weeklyHours.toFixed(2), contracted.toString(), overtime.toFixed(2)]);
+    });
+    
+    uniqueEscorts.forEach(e => {
+      const weeklyHours = escortWeeklyTotals[e.user_id] || 0;
+      const contracted = profilesMap.get(e.user_id)?.contracted_hours || 40;
+      const overtime = Math.max(0, weeklyHours - contracted);
+      rows.push(['Escort', e.name, '', '', '', '', '', weeklyHours.toFixed(2), contracted.toString(), overtime.toFixed(2)]);
+    });
+
+    const csv = [headers, ...rows].map(r => 
+      Array.isArray(r) ? r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') : r
+    ).join('\n');
+    downloadFile(csv, `timesheet-payroll-${format(weekStart, 'yyyy-MM-dd')}.csv`, 'text/csv');
+  };
+
+  // Export Detailed Compliance Report
+  const exportComplianceReport = () => {
+    const checkKeys = Object.keys(vehicleCheckLabels);
+    const headers = ['Staff Type', 'Name', 'Date', 'Vehicle', 'Start Mileage', 'End Mileage', 'Issues Reported', ...checkKeys.map(k => vehicleCheckLabels[k]), 'Additional Comments'];
+    const rows = driverEntries.map(e => [
+      'Driver',
+      e.driver_name,
+      e.entry_date,
+      e.vehicle_registration || '',
+      e.start_mileage || '',
+      e.end_mileage || '',
+      e.no_issues ? 'None' : e.issues_text || '',
+      ...checkKeys.map(k => e[k] === true ? 'Pass' : e[k] === false ? 'Fail' : 'N/A'),
+      e.additional_comments || '',
+    ]);
+
+    const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    downloadFile(csv, `compliance-report-${format(weekStart, 'yyyy-MM-dd')}.csv`, 'text/csv');
+  };
+
+  // Export All Data (Full export)
+  const exportFullData = () => {
     const checkKeys = Object.keys(vehicleCheckLabels);
     const headers = ['Type', 'Name', 'Date', 'Morning Start', 'Morning Finish', 'Afternoon Start', 'Afternoon Finish', 'Daily Hours', 'Start Mileage', 'End Mileage', 'Issues', 'Vehicle', ...checkKeys.map(k => vehicleCheckLabels[k]), 'Additional Comments'];
     const rows = [
       ...driverEntries.map(e => [
-        'Driver', 
-        e.driver_name, 
-        e.entry_date, 
-        e.morning_start_time, 
-        e.morning_finish_time, 
-        e.afternoon_start_time, 
-        e.afternoon_finish_time, 
-        formatHours(e.daily_hours),
-        e.start_mileage,
-        e.end_mileage,
-        e.no_issues ? 'None' : e.issues_text, 
-        e.vehicle_registration,
+        'Driver',
+        e.driver_name,
+        e.entry_date,
+        e.morning_start_time?.slice(0, 5) || '',
+        e.morning_finish_time?.slice(0, 5) || '',
+        e.afternoon_start_time?.slice(0, 5) || '',
+        e.afternoon_finish_time?.slice(0, 5) || '',
+        e.daily_hours.toFixed(2),
+        e.start_mileage || '',
+        e.end_mileage || '',
+        e.no_issues ? 'None' : e.issues_text || '',
+        e.vehicle_registration || '',
         ...checkKeys.map(k => e[k] ? 'Pass' : e[k] === false ? 'Fail' : 'N/A'),
         e.additional_comments || '',
       ]),
       ...escortEntries.map(e => [
-        'Escort', 
-        e.escort_name, 
-        e.entry_date, 
-        e.morning_start_time, 
-        e.morning_finish_time, 
-        e.afternoon_start_time, 
-        e.afternoon_finish_time, 
-        formatHours(e.daily_hours),
+        'Escort',
+        e.escort_name,
+        e.entry_date,
+        e.morning_start_time?.slice(0, 5) || '',
+        e.morning_finish_time?.slice(0, 5) || '',
+        e.afternoon_start_time?.slice(0, 5) || '',
+        e.afternoon_finish_time?.slice(0, 5) || '',
+        e.daily_hours.toFixed(2),
         '',
         '',
-        e.no_issues ? 'None' : e.issues_text, 
+        e.no_issues ? 'None' : e.issues_text || '',
         '',
         ...checkKeys.map(() => ''),
         '',
       ]),
     ];
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `entries-week-${format(weekStart, 'yyyy-MM-dd')}.csv`; a.click();
+    
+    const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    downloadFile(csv, `full-entries-${format(weekStart, 'yyyy-MM-dd')}.csv`, 'text/csv');
   };
 
   const Check = ({ v }: { v: boolean | null }) => v === true 
@@ -267,9 +366,35 @@ export default function ViewEntries() {
         </div>
 
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="w-4 h-4 mr-1" /> Export Week
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export to Spreadsheet
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportTimesheetPayroll}>
+                <Download className="w-4 h-4 mr-2" />
+                Timesheet for Payroll
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportComplianceReport}>
+                <Download className="w-4 h-4 mr-2" />
+                Compliance Report
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportFullData}>
+                <Download className="w-4 h-4 mr-2" />
+                Full Data Export
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                CSV files open in Excel & Google Sheets
+              </p>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Tabs defaultValue="drivers">
