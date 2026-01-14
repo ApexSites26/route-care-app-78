@@ -94,18 +94,39 @@ export default function VehicleDiary() {
     
     setDriverHistory(history || []);
     
-    (history || []).forEach(h => {
-      entries.push({
-        type: 'driver_usage',
-        id: h.id,
-        date: new Date(h.assigned_at),
-        title: `Driver: ${h.driver?.full_name}`,
-        subtitle: h.unassigned_at 
-          ? `${format(new Date(h.assigned_at), 'dd/MM/yy')} - ${format(new Date(h.unassigned_at), 'dd/MM/yy')}`
-          : `From ${format(new Date(h.assigned_at), 'dd/MM/yy')} (Current)`,
-        status: h.unassigned_at ? undefined : 'pending',
+    // Check if history exists, if not, get current driver from vehicles table
+    if (!history || history.length === 0) {
+      // Fetch current driver from the vehicle directly
+      const { data: vehicleWithDriver } = await supabase
+        .from('vehicles')
+        .select('assigned_driver_id, driver:profiles!vehicles_assigned_driver_id_fkey(id, full_name)')
+        .eq('id', selectedVehicle)
+        .single();
+      
+      if (vehicleWithDriver?.driver && vehicleWithDriver.assigned_driver_id) {
+        entries.push({
+          type: 'driver_usage',
+          id: `current-${vehicleWithDriver.assigned_driver_id}`,
+          date: new Date(),
+          title: `Driver: ${vehicleWithDriver.driver.full_name}`,
+          subtitle: 'Currently Assigned',
+          status: 'pending',
+        });
+      }
+    } else {
+      (history || []).forEach(h => {
+        entries.push({
+          type: 'driver_usage',
+          id: h.id,
+          date: new Date(h.assigned_at),
+          title: `Driver: ${h.driver?.full_name || 'Unknown'}`,
+          subtitle: h.unassigned_at 
+            ? `${format(new Date(h.assigned_at), 'dd/MM/yy')} - ${format(new Date(h.unassigned_at), 'dd/MM/yy')}`
+            : `From ${format(new Date(h.assigned_at), 'dd/MM/yy')} (Current)`,
+          status: h.unassigned_at ? undefined : 'pending',
+        });
       });
-    });
+    }
     
     // Fetch garage visits
     const { data: visits } = await supabase
