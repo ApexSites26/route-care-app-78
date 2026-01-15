@@ -72,7 +72,7 @@ export function RevealPin({ pin }: RevealPinProps) {
         <Button
           variant="outline"
           className={cn(
-            "w-full h-14 relative overflow-hidden transition-all select-none bg-muted",
+            "w-full h-14 relative overflow-hidden transition-all select-none bg-muted border-muted-foreground/20",
             isRevealed && "bg-primary/10 border-primary"
           )}
           onMouseDown={startHold}
@@ -82,9 +82,9 @@ export function RevealPin({ pin }: RevealPinProps) {
           onTouchEnd={endHold}
           onTouchCancel={endHold}
         >
-          {/* Progress bar background */}
+          {/* Progress bar background - darker grey */}
           <div 
-            className="absolute inset-0 bg-primary/20 transition-all"
+            className="absolute inset-0 bg-muted-foreground/30 transition-all"
             style={{ width: `${progress}%` }}
           />
           

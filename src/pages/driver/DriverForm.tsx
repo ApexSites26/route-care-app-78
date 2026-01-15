@@ -345,9 +345,14 @@ export default function DriverForm() {
             e.stopPropagation();
             if (!disabled) onChange(true);
           }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled) onChange(true);
+          }}
           disabled={disabled}
           className={cn(
-            "p-2 rounded-lg border transition-all",
+            "p-2 rounded-lg border transition-all touch-manipulation",
             value === true 
               ? "bg-success text-success-foreground border-success" 
               : "bg-background border-border text-muted-foreground hover:border-success hover:text-success",
@@ -363,9 +368,14 @@ export default function DriverForm() {
             e.stopPropagation();
             if (!disabled) onChange(false);
           }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled) onChange(false);
+          }}
           disabled={disabled}
           className={cn(
-            "p-2 rounded-lg border transition-all",
+            "p-2 rounded-lg border transition-all touch-manipulation",
             value === false 
               ? "bg-destructive text-destructive-foreground border-destructive" 
               : "bg-background border-border text-muted-foreground hover:border-destructive hover:text-destructive",
