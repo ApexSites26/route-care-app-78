@@ -105,7 +105,18 @@ export function DocumentsViewer() {
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => window.open(doc.file_url, '_blank')}
+              onClick={async () => {
+                // Generate signed URL for secure access
+                const filePath = doc.file_url.includes('/company-documents/') 
+                  ? doc.file_url.split('/company-documents/')[1] 
+                  : doc.file_url;
+                const { data } = await supabase.storage
+                  .from('company-documents')
+                  .createSignedUrl(filePath, 3600); // 1 hour expiry
+                if (data?.signedUrl) {
+                  window.open(data.signedUrl, '_blank');
+                }
+              }}
             >
               <Download className="w-4 h-4" />
             </Button>
