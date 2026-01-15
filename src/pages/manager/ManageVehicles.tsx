@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Loader2, Car, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Loader2, Car, Pencil, Trash2, CreditCard } from 'lucide-react';
 
-interface Vehicle { id: string; registration: string; make: string | null; model: string | null; assigned_driver_id: string | null; }
+interface Vehicle { id: string; registration: string; make: string | null; model: string | null; assigned_driver_id: string | null; fuel_card_pin: string | null; }
 interface Profile { id: string; full_name: string; role: string; }
 
 export default function ManageVehicles() {
@@ -27,6 +27,7 @@ export default function ManageVehicles() {
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [driverId, setDriverId] = useState('');
+  const [fuelCardPin, setFuelCardPin] = useState('');
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -62,6 +63,7 @@ export default function ManageVehicles() {
     setMake('');
     setModel('');
     setDriverId('');
+    setFuelCardPin('');
     setEditingVehicle(null);
   };
 
@@ -72,6 +74,7 @@ export default function ManageVehicles() {
       setMake(vehicle.make || '');
       setModel(vehicle.model || '');
       setDriverId(vehicle.assigned_driver_id || '');
+      setFuelCardPin(vehicle.fuel_card_pin || '');
     } else {
       resetForm();
     }
@@ -92,6 +95,7 @@ export default function ManageVehicles() {
       make: make.trim() || null,
       model: model.trim() || null,
       assigned_driver_id: driverId || null,
+      fuel_card_pin: fuelCardPin.trim() || null,
       company_id: profile.company_id,
     });
     if (error) {
@@ -114,6 +118,7 @@ export default function ManageVehicles() {
         make: make.trim() || null,
         model: model.trim() || null,
         assigned_driver_id: driverId || null,
+        fuel_card_pin: fuelCardPin.trim() || null,
       })
       .eq('id', editingVehicle.id);
     if (error) toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
@@ -164,6 +169,19 @@ export default function ManageVehicles() {
                     {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  Fuel Card PIN
+                </Label>
+                <Input 
+                  value={fuelCardPin} 
+                  onChange={(e) => setFuelCardPin(e.target.value)} 
+                  placeholder="1234" 
+                  maxLength={6}
+                />
+                <p className="text-xs text-muted-foreground">Drivers can securely reveal this PIN in their app</p>
               </div>
               <Button onClick={editingVehicle ? handleUpdate : handleAdd} disabled={saving} className="w-full">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingVehicle ? 'Update Vehicle' : 'Add Vehicle')}

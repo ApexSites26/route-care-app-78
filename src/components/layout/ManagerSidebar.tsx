@@ -11,7 +11,8 @@ import {
   LogOut,
   BookOpen,
   AlertTriangle,
-  Bell
+  Bell,
+  FolderOpen
 } from 'lucide-react';
 import { useBranding } from '@/hooks/useBranding';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,6 +45,7 @@ const managementItems = [
 ];
 
 const settingsItems = [
+  { to: '/manager/documents', icon: FolderOpen, label: 'Documents' },
   { to: '/manager/notifications', icon: Bell, label: 'Notifications' },
   { to: '/manager/branding', icon: Palette, label: 'Branding' },
   { to: '/manager/audit', icon: FileText, label: 'Audit Logs' },

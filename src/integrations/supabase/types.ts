@@ -85,6 +85,56 @@ export type Database = {
         }
         Relationships: []
       }
+      company_documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_entries: {
         Row: {
           additional_comments: string | null
@@ -774,6 +824,7 @@ export type Database = {
           assigned_driver_id: string | null
           company_id: string | null
           created_at: string
+          fuel_card_pin: string | null
           id: string
           is_active: boolean
           make: string | null
@@ -785,6 +836,7 @@ export type Database = {
           assigned_driver_id?: string | null
           company_id?: string | null
           created_at?: string
+          fuel_card_pin?: string | null
           id?: string
           is_active?: boolean
           make?: string | null
@@ -796,6 +848,7 @@ export type Database = {
           assigned_driver_id?: string | null
           company_id?: string | null
           created_at?: string
+          fuel_card_pin?: string | null
           id?: string
           is_active?: boolean
           make?: string | null

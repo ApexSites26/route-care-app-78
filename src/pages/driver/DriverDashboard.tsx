@@ -8,12 +8,15 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { WeeklyRota } from '@/components/WeeklyRota';
 import { GarageAlert } from '@/components/GarageAlert';
+import { RevealPin } from '@/components/RevealPin';
+import { DocumentsViewer } from '@/components/DocumentsViewer';
 
 interface Vehicle {
   id: string;
   registration: string;
   make: string | null;
   model: string | null;
+  fuel_card_pin: string | null;
 }
 
 interface DriverEntry {
@@ -157,6 +160,12 @@ export default function DriverDashboard() {
             <p className="text-muted-foreground py-4 text-center">No vehicle assigned. Contact your manager.</p>
           )}
         </div>
+
+        {/* Fuel Card PIN */}
+        <RevealPin pin={vehicle?.fuel_card_pin || null} />
+
+        {/* Company Documents */}
+        <DocumentsViewer />
       </div>
     </MobileLayout>
   );
