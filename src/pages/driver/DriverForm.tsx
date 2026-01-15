@@ -21,6 +21,7 @@ import {
   Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AdditionalRunsSection } from '@/components/AdditionalRunsSection';
 
 interface Vehicle {
   id: string;
@@ -561,6 +562,16 @@ export default function DriverForm() {
               {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Submit Afternoon Run'}
             </Button>
           </>
+        )}
+
+        {/* Additional Runs - always show for adding extra runs */}
+        {user && (
+          <AdditionalRunsSection
+            userId={user.id}
+            companyId={profile?.company_id}
+            entryType="driver"
+            date={today}
+          />
         )}
       </div>
     </MobileLayout>

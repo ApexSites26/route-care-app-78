@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_runs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          entry_date: string
+          entry_type: string
+          finish_time: string
+          id: string
+          notes: string | null
+          run_name: string
+          start_time: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          entry_date?: string
+          entry_type: string
+          finish_time: string
+          id?: string
+          notes?: string | null
+          run_name: string
+          start_time: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          entry_date?: string
+          entry_type?: string
+          finish_time?: string
+          id?: string
+          notes?: string | null
+          run_name?: string
+          start_time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string

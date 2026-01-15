@@ -61,6 +61,7 @@ export default function ViewEntries() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [driverEntries, setDriverEntries] = useState<any[]>([]);
   const [escortEntries, setEscortEntries] = useState<any[]>([]);
+  const [additionalRuns, setAdditionalRuns] = useState<any[]>([]);
   const [profilesMap, setProfilesMap] = useState<Map<string, { contracted_hours: number }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
@@ -77,8 +78,8 @@ export default function ViewEntries() {
     const startDate = format(weekStart, 'yyyy-MM-dd');
     const endDate = format(weekEnd, 'yyyy-MM-dd');
     
-    // Fetch all entries for the week
-    const [{ data: driverData }, { data: escortData }] = await Promise.all([
+    // Fetch all entries for the week including additional runs
+    const [{ data: driverData }, { data: escortData }, { data: additionalData }] = await Promise.all([
       supabase
         .from('driver_entries')
         .select('*')
@@ -89,14 +90,22 @@ export default function ViewEntries() {
         .select('*')
         .gte('entry_date', startDate)
         .lte('entry_date', endDate),
+      supabase
+        .from('additional_runs')
+        .select('*')
+        .gte('entry_date', startDate)
+        .lte('entry_date', endDate),
     ]);
+
+    setAdditionalRuns(additionalData || []);
 
     // Fetch profiles and vehicles
     const driverUserIds = [...new Set(driverData?.map(d => d.user_id) || [])];
     const escortUserIds = [...new Set(escortData?.map(e => e.user_id) || [])];
+    const additionalUserIds = [...new Set(additionalData?.map(a => a.user_id) || [])];
     const vehicleIds = [...new Set(driverData?.map(d => d.vehicle_id).filter(Boolean) || [])];
 
-    const allUserIds = [...new Set([...driverUserIds, ...escortUserIds])];
+    const allUserIds = [...new Set([...driverUserIds, ...escortUserIds, ...additionalUserIds])];
     
     const [{ data: allProfiles }, { data: vehicles }] = await Promise.all([
       allUserIds.length > 0 
@@ -112,24 +121,36 @@ export default function ViewEntries() {
     const contractedMap = new Map((allProfiles || []).map(p => [p.user_id, { contracted_hours: p.contracted_hours || 40 }]));
     setProfilesMap(contractedMap);
 
+    // Calculate additional hours per user per date
+    const additionalHoursMap = new Map<string, number>();
+    (additionalData || []).forEach(run => {
+      const key = `${run.user_id}-${run.entry_date}`;
+      const hours = calculateHours(run.start_time, run.finish_time);
+      additionalHoursMap.set(key, (additionalHoursMap.get(key) || 0) + hours);
+    });
+
     const enrichedDriverEntries = (driverData || []).map(e => {
       const morningHours = calculateHours(e.morning_start_time, e.morning_finish_time);
       const afternoonHours = calculateHours(e.afternoon_start_time, e.afternoon_finish_time);
+      const additionalHours = additionalHoursMap.get(`${e.user_id}-${e.entry_date}`) || 0;
       return {
         ...e,
         driver_name: profileMap.get(e.user_id) || 'Unknown',
         vehicle_registration: vehicleMap.get(e.vehicle_id) || null,
-        daily_hours: morningHours + afternoonHours,
+        daily_hours: morningHours + afternoonHours + additionalHours,
+        additional_hours: additionalHours,
       };
     });
 
     const enrichedEscortEntries = (escortData || []).map(e => {
       const morningHours = calculateHours(e.morning_start_time, e.morning_finish_time);
       const afternoonHours = calculateHours(e.afternoon_start_time, e.afternoon_finish_time);
+      const additionalHours = additionalHoursMap.get(`${e.user_id}-${e.entry_date}`) || 0;
       return {
         ...e,
         escort_name: profileMap.get(e.user_id) || 'Unknown',
-        daily_hours: morningHours + afternoonHours,
+        daily_hours: morningHours + afternoonHours + additionalHours,
+        additional_hours: additionalHours,
       };
     });
 
@@ -437,6 +458,12 @@ export default function ViewEntries() {
                       <div><span className="text-muted-foreground">End:</span> {e.end_mileage || '-'} mi</div>
                     </div>
 
+                    {e.additional_hours > 0 && (
+                      <div className="text-sm bg-accent/10 px-2 py-1 rounded">
+                        <span className="text-muted-foreground">Extra runs:</span> +{formatHours(e.additional_hours)}
+                      </div>
+                    )}
+
                     {expandedEntry === e.id && (
                       <div className="space-y-3 pt-2 border-t border-border">
                         <div className="grid grid-cols-4 gap-2 text-xs">
@@ -483,6 +510,11 @@ export default function ViewEntries() {
                       <div><span className="text-muted-foreground">AM:</span> {e.morning_start_time?.slice(0,5) || '-'} - {e.morning_finish_time?.slice(0,5) || '-'}</div>
                       <div><span className="text-muted-foreground">PM:</span> {e.afternoon_start_time?.slice(0,5) || '-'} - {e.afternoon_finish_time?.slice(0,5) || '-'}</div>
                     </div>
+                    {e.additional_hours > 0 && (
+                      <div className="text-sm bg-accent/10 px-2 py-1 rounded">
+                        <span className="text-muted-foreground">Extra runs:</span> +{formatHours(e.additional_hours)}
+                      </div>
+                    )}
                     {!e.no_issues && <p className="text-sm text-warning bg-warning/10 p-2 rounded">{e.issues_text}</p>}
                   </div>
                 ))}
