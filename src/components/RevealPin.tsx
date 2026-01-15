@@ -91,8 +91,8 @@ export function RevealPin({ pin }: RevealPinProps) {
           <div className="relative z-10 flex items-center justify-center gap-3">
             {isRevealed ? (
               <>
-                <Eye className="w-5 h-5 text-primary" />
-                <span className="text-2xl font-bold tracking-[0.5em] text-primary">{pin}</span>
+                <Eye className="w-5 h-5 text-foreground" />
+                <span className="text-2xl font-bold tracking-[0.5em] text-foreground">{pin}</span>
               </>
             ) : (
               <>
