@@ -52,9 +52,39 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Authentication: Verify either a valid user JWT or a cron secret
+  const authHeader = req.headers.get("Authorization");
+  const cronSecret = req.headers.get("X-Cron-Secret");
+  const expectedCronSecret = Deno.env.get("CRON_SECRET");
+  
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  // Check for cron secret authentication (for scheduled jobs)
+  if (cronSecret && expectedCronSecret && cronSecret === expectedCronSecret) {
+    // Authenticated via cron secret, proceed
+  } else if (authHeader?.startsWith("Bearer ")) {
+    // Check for valid user JWT
+    const token = authHeader.substring(7);
+    const authClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user }, error } = await authClient.auth.getUser(token);
+    
+    if (error || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    // User authenticated, proceed
+  } else {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Missing authentication" }),
+      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const today = new Date().toISOString().split("T")[0];

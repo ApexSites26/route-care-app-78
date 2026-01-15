@@ -167,6 +167,14 @@ export default function ManageUsers() {
     resetForm();
   };
 
+  // Generate a cryptographically secure random password
+  const generateSecurePassword = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(x => chars[x % chars.length]).join('');
+  };
+
   const handleAddUser = async () => {
     const trimmedName = newName.trim();
     const trimmedEmail = newEmail.trim();
@@ -185,9 +193,12 @@ export default function ManageUsers() {
     }
     setSaving(true);
 
+    // Generate a unique secure password for this user
+    const securePassword = generateSecurePassword();
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: trimmedEmail,
-      password: 'TempPass123!',
+      password: securePassword,
       options: { 
         emailRedirectTo: window.location.origin,
         data: { full_name: trimmedName }
@@ -223,7 +234,10 @@ export default function ManageUsers() {
       console.error('Error assigning staff:', assignError);
       toast({ title: 'Failed to assign staff to company', description: assignError.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Staff member created', description: `They should log in with password: TempPass123!` });
+      toast({ 
+        title: 'Staff member created', 
+        description: 'A password reset email will be sent to their email address. They should use the "Forgot Password" link to set their password.' 
+      });
       handleCloseDialog();
       fetchProfiles();
     }

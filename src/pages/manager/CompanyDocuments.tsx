@@ -104,19 +104,17 @@ export default function CompanyDocuments() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('company-documents')
-        .getPublicUrl(fileName);
+      // Store the file path (not URL) for signed URL generation later
+      const filePath = fileName;
 
-      // Create document record
+      // Create document record with file path instead of public URL
       const { error: insertError } = await supabase
         .from('company_documents')
         .insert({
           company_id: profile.company_id,
           title: title.trim(),
           description: description.trim() || null,
-          file_url: urlData.publicUrl,
+          file_url: filePath, // Store path, not public URL
           file_name: selectedFile.name,
           file_type: selectedFile.type,
           file_size: selectedFile.size,
@@ -141,10 +139,18 @@ export default function CompanyDocuments() {
     if (!deleteDoc) return;
 
     try {
-      // Extract file path from URL
-      const urlParts = deleteDoc.file_url.split('/company-documents/');
-      if (urlParts.length > 1) {
-        await supabase.storage.from('company-documents').remove([urlParts[1]]);
+      // The file_url now stores the file path directly
+      const filePath = deleteDoc.file_url;
+      
+      // Check if it's an old-style URL or new-style path
+      if (filePath.includes('/company-documents/')) {
+        const urlParts = filePath.split('/company-documents/');
+        if (urlParts.length > 1) {
+          await supabase.storage.from('company-documents').remove([urlParts[1]]);
+        }
+      } else {
+        // New style: file_url is just the path
+        await supabase.storage.from('company-documents').remove([filePath]);
       }
 
       const { error } = await supabase
@@ -289,7 +295,20 @@ export default function CompanyDocuments() {
                     variant="outline" 
                     size="sm" 
                     className="flex-1"
-                    onClick={() => window.open(doc.file_url, '_blank')}
+                    onClick={async () => {
+                      // Generate signed URL for secure access
+                      const filePath = doc.file_url.includes('/company-documents/') 
+                        ? doc.file_url.split('/company-documents/')[1] 
+                        : doc.file_url;
+                      const { data, error } = await supabase.storage
+                        .from('company-documents')
+                        .createSignedUrl(filePath, 3600); // 1 hour expiry
+                      if (data?.signedUrl) {
+                        window.open(data.signedUrl, '_blank');
+                      } else {
+                        toast({ title: 'Failed to generate download link', variant: 'destructive' });
+                      }
+                    }}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download
