@@ -340,7 +340,11 @@ export default function DriverForm() {
       <div className="flex gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => !disabled && onChange(true)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled) onChange(true);
+          }}
           disabled={disabled}
           className={cn(
             "p-2 rounded-lg border transition-all",
@@ -354,7 +358,11 @@ export default function DriverForm() {
         </button>
         <button
           type="button"
-          onClick={() => !disabled && onChange(false)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled) onChange(false);
+          }}
           disabled={disabled}
           className={cn(
             "p-2 rounded-lg border transition-all",

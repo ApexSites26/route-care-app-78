@@ -72,7 +72,7 @@ export function RevealPin({ pin }: RevealPinProps) {
         <Button
           variant="outline"
           className={cn(
-            "w-full h-14 relative overflow-hidden transition-all select-none",
+            "w-full h-14 relative overflow-hidden transition-all select-none bg-muted",
             isRevealed && "bg-primary/10 border-primary"
           )}
           onMouseDown={startHold}
