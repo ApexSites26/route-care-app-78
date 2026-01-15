@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { WeeklyRota } from '@/components/WeeklyRota';
+import { DocumentsViewer } from '@/components/DocumentsViewer';
 
 interface EscortEntry {
   id: string;
@@ -106,6 +107,9 @@ export default function EscortDashboard() {
 
         {/* Weekly Rota */}
         <WeeklyRota role="escort" />
+
+        {/* Company Documents */}
+        <DocumentsViewer />
       </div>
     </MobileLayout>
   );
