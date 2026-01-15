@@ -18,6 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AdditionalRunsSection } from '@/components/AdditionalRunsSection';
 
 interface ExistingEntry {
   id: string;
@@ -361,6 +362,16 @@ export default function EscortForm() {
               )}
             </Button>
           </>
+        )}
+
+        {/* Additional Runs - always show for adding extra runs */}
+        {user && (
+          <AdditionalRunsSection
+            userId={user.id}
+            companyId={profile?.company_id}
+            entryType="escort"
+            date={today}
+          />
         )}
       </div>
     </MobileLayout>
