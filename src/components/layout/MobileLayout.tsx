@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBranding } from '@/hooks/useBranding';
 import { cn } from '@/lib/utils';
 import { FloatingMenu } from '@/components/FloatingMenu';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DesktopManagerLayout } from './DesktopManagerLayout';
 
@@ -15,7 +16,7 @@ interface MobileLayoutProps {
 }
 
 export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) {
-  const { profile, signOut } = useAuth();
+  const { profile, roles, activeRole, signOut } = useAuth();
   const { branding } = useBranding();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -23,7 +24,10 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
   const getNavItems = () => {
     if (!profile) return [];
     
-    switch (profile.role) {
+    // Use activeRole if available, otherwise fall back to profile.role
+    const currentRole = activeRole || profile.role;
+    
+    switch (currentRole) {
       case 'driver':
         return [
           { to: '/driver', icon: Home, label: 'Home' },
@@ -50,10 +54,12 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
   };
 
   const navItems = getNavItems();
-  const showFloatingMenu = profile?.role === 'driver' || profile?.role === 'escort';
+  const currentRole = activeRole || profile?.role;
+  const showFloatingMenu = currentRole === 'driver' || currentRole === 'escort';
+  const hasMultipleRoles = roles.length > 1;
 
   // For managers on desktop, use the enhanced desktop layout with sidebar
-  if (profile?.role === 'manager' && !isMobile) {
+  if (currentRole === 'manager' && !isMobile) {
     return (
       <DesktopManagerLayout title={title}>
         {children}
@@ -62,7 +68,7 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
   }
 
   // For drivers/escorts on desktop, enhance the layout but keep similar structure
-  const isDesktopDriverEscort = !isMobile && (profile?.role === 'driver' || profile?.role === 'escort');
+  const isDesktopDriverEscort = !isMobile && (currentRole === 'driver' || currentRole === 'escort');
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -95,35 +101,40 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
               </h1>
               {profile && (
                 <p className="text-xs text-muted-foreground capitalize md:text-sm">
-                  {profile.full_name} • {profile.role}
+                  {profile.full_name} • {currentRole}
                 </p>
               )}
             </div>
           </div>
-          {/* Floating Menu for Driver/Escort in header */}
-          {showFloatingMenu ? (
-            <FloatingMenu 
-              items={navItems} 
-              role={profile?.role as 'driver' | 'escort'} 
-              vehicleId={vehicleId}
-              onLogout={signOut}
-            />
-          ) : (
-            <button
-              onClick={signOut}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Sign out"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Role Switcher for multi-role users */}
+            {hasMultipleRoles && <RoleSwitcher />}
+            
+            {/* Floating Menu for Driver/Escort in header */}
+            {showFloatingMenu ? (
+              <FloatingMenu 
+                items={navItems} 
+                role={currentRole as 'driver' | 'escort'} 
+                vehicleId={vehicleId}
+                onLogout={signOut}
+              />
+            ) : (
+              <button
+                onClick={signOut}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className={cn(
         "flex-1 overflow-auto", 
-        profile?.role === 'manager' ? "pb-20" : "pb-4",
+        currentRole === 'manager' ? "pb-20" : "pb-4",
         isDesktopDriverEscort && "md:pb-8"
       )}>
         <div className={cn(
@@ -135,7 +146,7 @@ export function MobileLayout({ children, title, vehicleId }: MobileLayoutProps) 
       </main>
 
       {/* Bottom Navigation - Only for Manager on Mobile */}
-      {profile?.role === 'manager' && isMobile && (
+      {currentRole === 'manager' && isMobile && (
         <nav className="bottom-nav">
           <div className="flex items-center justify-around max-w-lg mx-auto py-2">
             {navItems.map((item) => {

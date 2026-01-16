@@ -5,22 +5,30 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Loader2, User, Pencil, Trash2, Clock, BarChart3 } from 'lucide-react';
+import { Plus, Loader2, User, Pencil, Trash2, Clock, BarChart3, Shield, Car, Users } from 'lucide-react';
 import { StaffHoursBreakdown } from '@/components/StaffHoursBreakdown';
+
+type AppRole = 'driver' | 'escort' | 'manager';
 
 interface Profile {
   id: string;
   user_id: string;
   full_name: string;
   email: string | null;
-  role: 'driver' | 'escort' | 'manager';
+  role: AppRole;
   is_active: boolean;
   contracted_hours: number | null;
   contract_start_date: string | null;
+}
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: AppRole;
 }
 
 interface WorkedHours {
@@ -30,6 +38,7 @@ interface WorkedHours {
 export default function ManageUsers() {
   const { profile } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [workedHours, setWorkedHours] = useState<WorkedHours>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -39,7 +48,7 @@ export default function ManageUsers() {
   const [viewHoursProfile, setViewHoursProfile] = useState<Profile | null>(null);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<'driver' | 'escort'>('driver');
+  const [selectedRoles, setSelectedRoles] = useState<AppRole[]>(['driver']);
   const [newContractedHours, setNewContractedHours] = useState('40');
   const [newContractStartDate, setNewContractStartDate] = useState('');
   const { toast } = useToast();
@@ -50,11 +59,21 @@ export default function ManageUsers() {
       return;
     }
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('company_id', profile.company_id).order('full_name');
+      const [{ data: profilesData, error }, { data: rolesData }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('company_id', profile.company_id).order('full_name'),
+        supabase.from('user_roles').select('*')
+      ]);
+
       if (error) {
         console.error('Error fetching profiles:', error);
       }
-      setProfiles((data as Profile[]) || []);
+
+      // Filter roles to only those belonging to our company's users
+      const companyUserIds = (profilesData || []).map(p => p.user_id);
+      const companyRoles = (rolesData || []).filter(r => companyUserIds.includes(r.user_id));
+
+      setProfiles((profilesData as Profile[]) || []);
+      setUserRoles(companyRoles as UserRole[]);
     } catch (error) {
       console.error('Error in fetchProfiles:', error);
     } finally {
@@ -65,7 +84,6 @@ export default function ManageUsers() {
   const fetchWorkedHours = async () => {
     if (!profile?.company_id) return;
     
-    // Get current week's Monday and Sunday
     const now = new Date();
     const dayOfWeek = now.getDay();
     const monday = new Date(now);
@@ -78,7 +96,6 @@ export default function ManageUsers() {
     const mondayStr = monday.toISOString().split('T')[0];
     const sundayStr = sunday.toISOString().split('T')[0];
 
-    // Fetch driver entries for this week
     const { data: driverEntries } = await supabase
       .from('driver_entries')
       .select('user_id, morning_start_time, morning_finish_time, afternoon_start_time, afternoon_finish_time')
@@ -86,7 +103,6 @@ export default function ManageUsers() {
       .gte('entry_date', mondayStr)
       .lte('entry_date', sundayStr);
 
-    // Fetch escort entries for this week
     const { data: escortEntries } = await supabase
       .from('escort_entries')
       .select('user_id, morning_start_time, morning_finish_time, afternoon_start_time, afternoon_finish_time')
@@ -103,7 +119,6 @@ export default function ManageUsers() {
       return (finishH + finishM / 60) - (startH + startM / 60);
     };
 
-    // Get profiles to map user_id to profile id
     const { data: allProfiles } = await supabase
       .from('profiles')
       .select('id, user_id')
@@ -139,10 +154,14 @@ export default function ManageUsers() {
     }
   }, [profile?.company_id]);
 
+  const getUserRoles = (userId: string): AppRole[] => {
+    return userRoles.filter(r => r.user_id === userId).map(r => r.role);
+  };
+
   const resetForm = () => {
     setNewName('');
     setNewEmail('');
-    setNewRole('driver');
+    setSelectedRoles(['driver']);
     setNewContractedHours('40');
     setNewContractStartDate(new Date().toISOString().split('T')[0]);
     setEditingProfile(null);
@@ -153,7 +172,8 @@ export default function ManageUsers() {
       setEditingProfile(p);
       setNewName(p.full_name);
       setNewEmail(p.email || '');
-      setNewRole(p.role === 'manager' ? 'driver' : p.role);
+      const roles = getUserRoles(p.user_id);
+      setSelectedRoles(roles.length > 0 ? roles : [p.role]);
       setNewContractedHours(String(p.contracted_hours ?? 40));
       setNewContractStartDate(p.contract_start_date || new Date().toISOString().split('T')[0]);
     } else {
@@ -167,7 +187,17 @@ export default function ManageUsers() {
     resetForm();
   };
 
-  // Generate a cryptographically secure random password
+  const toggleRole = (role: AppRole) => {
+    setSelectedRoles(prev => {
+      if (prev.includes(role)) {
+        // Don't allow removing last role
+        if (prev.length === 1) return prev;
+        return prev.filter(r => r !== role);
+      }
+      return [...prev, role];
+    });
+  };
+
   const generateSecurePassword = (): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     const array = new Uint8Array(16);
@@ -187,14 +217,18 @@ export default function ManageUsers() {
       toast({ title: 'Please enter an email', variant: 'destructive' });
       return;
     }
+    if (selectedRoles.length === 0) {
+      toast({ title: 'Please select at least one role', variant: 'destructive' });
+      return;
+    }
     if (!profile?.company_id) {
       toast({ title: 'Session error - please refresh the page', variant: 'destructive' });
       return;
     }
     setSaving(true);
 
-    // Generate a unique secure password for this user
     const securePassword = generateSecurePassword();
+    const primaryRole = selectedRoles.includes('manager') ? 'manager' : selectedRoles[0];
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: trimmedEmail,
@@ -217,15 +251,13 @@ export default function ManageUsers() {
       return;
     }
 
-    // Wait for the trigger to create the profile
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Use the security definer function to assign staff to company
     const { error: assignError } = await supabase.rpc('add_staff_to_company', {
       _user_id: authData.user.id,
       _company_id: profile.company_id,
       _full_name: trimmedName,
-      _role: newRole,
+      _role: primaryRole,
       _contracted_hours: parseFloat(newContractedHours) || 40,
       _email: trimmedEmail
     });
@@ -233,14 +265,24 @@ export default function ManageUsers() {
     if (assignError) {
       console.error('Error assigning staff:', assignError);
       toast({ title: 'Failed to assign staff to company', description: assignError.message, variant: 'destructive' });
-    } else {
-      toast({ 
-        title: 'Staff member created', 
-        description: 'A password reset email will be sent to their email address. They should use the "Forgot Password" link to set their password.' 
-      });
-      handleCloseDialog();
-      fetchProfiles();
+      setSaving(false);
+      return;
     }
+
+    // Add all selected roles to user_roles table
+    for (const role of selectedRoles) {
+      await supabase.from('user_roles').upsert({
+        user_id: authData.user.id,
+        role: role
+      }, { onConflict: 'user_id,role' });
+    }
+
+    toast({ 
+      title: 'Staff member created', 
+      description: 'A password reset email will be sent to their email address. They should use the "Forgot Password" link to set their password.' 
+    });
+    handleCloseDialog();
+    fetchProfiles();
     setSaving(false);
   };
 
@@ -249,12 +291,18 @@ export default function ManageUsers() {
       toast({ title: 'Please fill all fields', variant: 'destructive' });
       return;
     }
+    if (selectedRoles.length === 0) {
+      toast({ title: 'Please select at least one role', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
+
+    const primaryRole = selectedRoles.includes('manager') ? 'manager' : selectedRoles[0];
 
     const { error } = await supabase.from('profiles')
       .update({ 
         full_name: newName.trim(), 
-        role: newRole,
+        role: primaryRole,
         contracted_hours: parseFloat(newContractedHours) || 40,
         email: newEmail.trim() || null,
         contract_start_date: newContractStartDate || null
@@ -263,16 +311,32 @@ export default function ManageUsers() {
 
     if (error) {
       toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Staff member updated' });
-      handleCloseDialog();
-      fetchProfiles();
+      setSaving(false);
+      return;
     }
+
+    // Update user_roles - remove all existing then add new
+    await supabase.from('user_roles').delete().eq('user_id', editingProfile.user_id);
+    
+    for (const role of selectedRoles) {
+      await supabase.from('user_roles').insert({
+        user_id: editingProfile.user_id,
+        role: role
+      });
+    }
+
+    toast({ title: 'Staff member updated' });
+    handleCloseDialog();
+    fetchProfiles();
     setSaving(false);
   };
 
   const handleDeleteUser = async () => {
     if (!deleteProfile) return;
+    
+    // Delete from user_roles first
+    await supabase.from('user_roles').delete().eq('user_id', deleteProfile.user_id);
+    
     const { error } = await supabase.from('profiles').delete().eq('id', deleteProfile.id);
     if (error) toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Staff member removed' }); fetchProfiles(); }
@@ -283,6 +347,39 @@ export default function ManageUsers() {
     const worked = workedHours[p.id] || 0;
     const contracted = p.contracted_hours ?? 40;
     return Math.max(0, worked - contracted);
+  };
+
+  const getRoleIcon = (role: AppRole) => {
+    switch (role) {
+      case 'driver': return <Car className="w-3 h-3" />;
+      case 'escort': return <Users className="w-3 h-3" />;
+      case 'manager': return <Shield className="w-3 h-3" />;
+    }
+  };
+
+  const getRoleBadges = (userId: string, primaryRole: AppRole) => {
+    const roles = getUserRoles(userId);
+    const displayRoles = roles.length > 0 ? roles : [primaryRole];
+    
+    return (
+      <div className="flex flex-wrap gap-1">
+        {displayRoles.map(role => (
+          <span 
+            key={role}
+            className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
+              role === 'manager' 
+                ? 'bg-primary/20 text-primary' 
+                : role === 'driver'
+                ? 'bg-amber-500/20 text-amber-700'
+                : 'bg-indigo-500/20 text-indigo-700'
+            }`}
+          >
+            {getRoleIcon(role)}
+            <span className="capitalize">{role}</span>
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -312,15 +409,55 @@ export default function ManageUsers() {
                   {editingProfile ? 'Used for reminder notifications' : 'Used for login and reminder notifications'}
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={newRole} onValueChange={(v) => setNewRole(v as 'driver' | 'escort')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="driver">Driver</SelectItem>
-                    <SelectItem value="escort">Escort</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <Label>Roles (select all that apply)</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="role-driver" 
+                      checked={selectedRoles.includes('driver')}
+                      onCheckedChange={() => toggleRole('driver')}
+                    />
+                    <label 
+                      htmlFor="role-driver" 
+                      className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    >
+                      <Car className="w-4 h-4 text-amber-600" />
+                      Driver
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="role-escort" 
+                      checked={selectedRoles.includes('escort')}
+                      onCheckedChange={() => toggleRole('escort')}
+                    />
+                    <label 
+                      htmlFor="role-escort" 
+                      className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 text-indigo-600" />
+                      Escort
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="role-manager" 
+                      checked={selectedRoles.includes('manager')}
+                      onCheckedChange={() => toggleRole('manager')}
+                    />
+                    <label 
+                      htmlFor="role-manager" 
+                      className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    >
+                      <Shield className="w-4 h-4 text-primary" />
+                      Manager
+                    </label>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Staff can have multiple roles. Managers have full access to company settings.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Weekly Contracted Hours</Label>
@@ -367,7 +504,7 @@ export default function ManageUsers() {
                   </div>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewHoursProfile(p)}>
                     <p className="font-medium text-foreground truncate">{p.full_name}</p>
-                    <p className="text-sm text-muted-foreground capitalize">{p.role}</p>
+                    {getRoleBadges(p.user_id, p.role)}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />

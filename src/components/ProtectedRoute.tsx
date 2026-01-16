@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, roles, activeRole, loading, signOut } = useAuth();
   const [managerEmail, setManagerEmail] = useState<string | null>(null);
   const [loadingManager, setLoadingManager] = useState(false);
 
@@ -23,7 +23,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       
       setLoadingManager(true);
       try {
-        // Try to find a manager from any company (since user doesn't have a profile yet)
         const { data } = await supabase
           .from('profiles')
           .select('user_id')
@@ -33,14 +32,12 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           .single();
 
         if (data?.user_id) {
-          // Get the email from auth.users via the user's email in their session
           const { data: userData } = await supabase.auth.admin?.getUserById?.(data.user_id) || {};
           if (userData?.user?.email) {
             setManagerEmail(userData.user.email);
           }
         }
       } catch (error) {
-        // Silently fail - we'll just show the default message
         console.log('Could not fetch manager email');
       }
       setLoadingManager(false);
@@ -94,17 +91,24 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     );
   }
 
-  if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    // Redirect to appropriate dashboard
-    switch (profile.role) {
-      case 'driver':
-        return <Navigate to="/driver" replace />;
-      case 'escort':
-        return <Navigate to="/escort" replace />;
-      case 'manager':
-        return <Navigate to="/manager" replace />;
-      default:
-        return <Navigate to="/auth" replace />;
+  // Check if user has any of the allowed roles (using user_roles or activeRole)
+  if (allowedRoles) {
+    const hasAllowedRole = roles.some(r => allowedRoles.includes(r)) || 
+                           (activeRole && allowedRoles.includes(activeRole));
+    
+    if (!hasAllowedRole) {
+      // Redirect to appropriate dashboard based on active role or first available role
+      const redirectRole = activeRole || roles[0] || profile.role;
+      switch (redirectRole) {
+        case 'driver':
+          return <Navigate to="/driver" replace />;
+        case 'escort':
+          return <Navigate to="/escort" replace />;
+        case 'manager':
+          return <Navigate to="/manager" replace />;
+        default:
+          return <Navigate to="/auth" replace />;
+      }
     }
   }
 
