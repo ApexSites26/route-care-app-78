@@ -564,6 +564,60 @@ export type Database = {
           },
         ]
       }
+      run_exceptions: {
+        Row: {
+          affected_leg: string
+          company_id: string | null
+          created_at: string
+          created_by: string
+          exception_date: string
+          id: string
+          note: string | null
+          override_pickup_time: string
+          run_id: string
+          updated_at: string
+        }
+        Insert: {
+          affected_leg: string
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          exception_date: string
+          id?: string
+          note?: string | null
+          override_pickup_time: string
+          run_id: string
+          updated_at?: string
+        }
+        Update: {
+          affected_leg?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          exception_date?: string
+          id?: string
+          note?: string | null
+          override_pickup_time?: string
+          run_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "run_exceptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "run_exceptions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "school_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_runs: {
         Row: {
           company_id: string | null

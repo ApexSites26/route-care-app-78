@@ -10,6 +10,7 @@ import { WeeklyRota } from '@/components/WeeklyRota';
 import { GarageAlert } from '@/components/GarageAlert';
 import { RevealPin } from '@/components/RevealPin';
 import { DocumentsViewer } from '@/components/DocumentsViewer';
+import { ExceptionNotifications } from '@/components/ExceptionNotifications';
 
 interface Vehicle {
   id: string;
@@ -80,6 +81,9 @@ export default function DriverDashboard() {
 
         {/* Garage Alert */}
         <GarageAlert />
+
+        {/* Exception Notifications for Tomorrow */}
+        <ExceptionNotifications />
 
         {/* Today's Status */}
         <div className="touch-card">

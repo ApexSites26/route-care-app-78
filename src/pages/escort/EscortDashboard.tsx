@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { WeeklyRota } from '@/components/WeeklyRota';
 import { DocumentsViewer } from '@/components/DocumentsViewer';
+import { ExceptionNotifications } from '@/components/ExceptionNotifications';
 
 interface EscortEntry {
   id: string;
@@ -58,6 +59,9 @@ export default function EscortDashboard() {
           </h2>
           <p className="text-muted-foreground md:text-lg">{today}</p>
         </div>
+
+        {/* Exception Notifications for Tomorrow */}
+        <ExceptionNotifications />
 
         {/* Today's Status */}
         <div className="touch-card">

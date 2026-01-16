@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Plus, Clock, Users, Pencil, Trash2, Sun, Moon } from 'lucide-react';
+import { RunExceptionsManager } from '@/components/RunExceptionsManager';
 
 interface SchoolRun {
   id: string;
@@ -347,6 +348,13 @@ export default function ManageSchoolRuns() {
                     <span>{run.duration_minutes || 60} mins</span>
                   </div>
                 </div>
+
+                <RunExceptionsManager 
+                  runId={run.id}
+                  runCode={run.run_code}
+                  defaultPickupHome={run.pickup_time_home}
+                  defaultPickupSchool={run.pickup_time_school}
+                />
 
                 <Button variant="outline" size="sm" onClick={() => handleOpenAllocDialog(run)} className="w-full">
                   <Users className="w-4 h-4 mr-2" /> Allocate Staff

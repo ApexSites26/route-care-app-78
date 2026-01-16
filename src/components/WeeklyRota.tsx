@@ -1,19 +1,29 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Sun, Moon } from 'lucide-react';
+import { Calendar, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { format, startOfWeek, addDays } from 'date-fns';
 
 interface RunAllocation {
   id: string;
   day_of_week: number;
   shift_type: string;
   run: {
+    id: string;
     run_code: string;
     description: string | null;
     pickup_time_home: string | null;
     pickup_time_school: string | null;
   };
+}
+
+interface RunException {
+  run_id: string;
+  exception_date: string;
+  affected_leg: string;
+  override_pickup_time: string;
+  note: string | null;
 }
 
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -25,6 +35,7 @@ interface WeeklyRotaProps {
 export function WeeklyRota({ role }: WeeklyRotaProps) {
   const { profile } = useAuth();
   const [allocations, setAllocations] = useState<RunAllocation[]>([]);
+  const [exceptions, setExceptions] = useState<RunException[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,10 +64,23 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
           id: a.id,
           day_of_week: a.day_of_week,
           shift_type: a.shift_type,
-          run: runMap.get(a.run_id) || { run_code: 'Unknown', description: null, pickup_time_home: null, pickup_time_school: null },
+          run: runMap.get(a.run_id) || { id: a.run_id, run_code: 'Unknown', description: null, pickup_time_home: null, pickup_time_school: null },
         }));
 
         setAllocations(enriched);
+
+        // Fetch exceptions for this week
+        const today = new Date();
+        const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        const weekDates = Array.from({ length: 5 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+
+        const { data: exceptionsData } = await supabase
+          .from('run_exceptions')
+          .select('run_id, exception_date, affected_leg, override_pickup_time, note')
+          .in('run_id', runIds)
+          .in('exception_date', weekDates);
+
+        setExceptions(exceptionsData || []);
       }
       
       setLoading(false);
@@ -64,6 +88,41 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
 
     fetchAllocations();
   }, [profile, role]);
+
+  // Get the effective time for a run on a specific date
+  const getEffectiveTime = (
+    runId: string,
+    dayOfWeek: number,
+    shiftType: string,
+    defaultTime: string | null
+  ): { time: string | null; isOverridden: boolean; note: string | null } => {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const targetDate = addDays(weekStart, dayOfWeek - 1); // dayOfWeek 1 = Monday
+    const dateStr = format(targetDate, 'yyyy-MM-dd');
+    
+    const affectedLeg = shiftType === 'am' ? 'home_to_school' : 'school_to_home';
+    
+    const exception = exceptions.find(
+      exc => exc.run_id === runId && 
+             exc.exception_date === dateStr && 
+             exc.affected_leg === affectedLeg
+    );
+
+    if (exception) {
+      return {
+        time: exception.override_pickup_time.slice(0, 5),
+        isOverridden: true,
+        note: exception.note,
+      };
+    }
+
+    return {
+      time: defaultTime?.slice(0, 5) || null,
+      isOverridden: false,
+      note: null,
+    };
+  };
 
   if (loading) {
     return (
@@ -137,16 +196,33 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
                         <span className="text-xs font-medium">AM</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {amAllocs.map(alloc => (
-                          <span key={alloc.id} className="font-bold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded">
-                            {alloc.run.run_code}
-                            {alloc.run.pickup_time_home && (
-                              <span className="font-normal text-muted-foreground ml-1">
-                                @ {alloc.run.pickup_time_home.slice(0, 5)}
-                              </span>
-                            )}
-                          </span>
-                        ))}
+                        {amAllocs.map(alloc => {
+                          const { time, isOverridden, note } = getEffectiveTime(
+                            alloc.run.id,
+                            day,
+                            'am',
+                            alloc.run.pickup_time_home
+                          );
+                          return (
+                            <span 
+                              key={alloc.id} 
+                              className={`font-bold text-sm px-2 py-0.5 rounded ${
+                                isOverridden 
+                                  ? 'text-warning bg-warning/20 border border-warning/30' 
+                                  : 'text-primary bg-primary/10'
+                              }`}
+                              title={note || undefined}
+                            >
+                              {isOverridden && <AlertTriangle className="w-3 h-3 inline mr-1" />}
+                              {alloc.run.run_code}
+                              {time && (
+                                <span className={`font-normal ml-1 ${isOverridden ? 'text-warning' : 'text-muted-foreground'}`}>
+                                  @ {time}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -159,16 +235,33 @@ export function WeeklyRota({ role }: WeeklyRotaProps) {
                         <span className="text-xs font-medium">PM</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {pmAllocs.map(alloc => (
-                          <span key={alloc.id} className="font-bold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded">
-                            {alloc.run.run_code}
-                            {alloc.run.pickup_time_school && (
-                              <span className="font-normal text-muted-foreground ml-1">
-                                @ {alloc.run.pickup_time_school.slice(0, 5)}
-                              </span>
-                            )}
-                          </span>
-                        ))}
+                        {pmAllocs.map(alloc => {
+                          const { time, isOverridden, note } = getEffectiveTime(
+                            alloc.run.id,
+                            day,
+                            'pm',
+                            alloc.run.pickup_time_school
+                          );
+                          return (
+                            <span 
+                              key={alloc.id} 
+                              className={`font-bold text-sm px-2 py-0.5 rounded ${
+                                isOverridden 
+                                  ? 'text-warning bg-warning/20 border border-warning/30' 
+                                  : 'text-primary bg-primary/10'
+                              }`}
+                              title={note || undefined}
+                            >
+                              {isOverridden && <AlertTriangle className="w-3 h-3 inline mr-1" />}
+                              {alloc.run.run_code}
+                              {time && (
+                                <span className={`font-normal ml-1 ${isOverridden ? 'text-warning' : 'text-muted-foreground'}`}>
+                                  @ {time}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
